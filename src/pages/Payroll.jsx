@@ -490,7 +490,6 @@ const Payroll = () => {
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Monthly CTC</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Per Day Rate</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Present</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Full</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Half</th>
@@ -525,10 +524,7 @@ const Payroll = () => {
                         <td className="px-4 py-4">
                           <div className="text-sm text-gray-900">{formatCurrency(employee.ctc)}</div>
                           <div className="text-xs text-gray-500">Monthly CTC</div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="text-sm text-gray-900">{formatCurrency(employee.monthly_ctc)}</div>
-                          <div className="text-xs text-gray-500">₹{parseFloat(employee.per_day_salary).toFixed(0)}/day (for {employee.monthly_working_days} days/month)</div>
+                          <div className="text-xs text-gray-500">₹{parseFloat(employee.per_day_salary).toFixed(0)}/day</div>
                         </td>
                         <td className="px-4 py-4 text-center">
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">

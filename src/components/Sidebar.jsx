@@ -23,7 +23,7 @@ const allNavItems = [
   { to: '/leave-requests', icon: Calendar, label: 'Leave Requests', roles: ['all'] },
   // { to: '/helpdesk', icon: Headphones, label: 'Helpdesk', roles: ['hr', 'admin'] },
   { to: '/payroll', icon: DollarSign, label: 'Payroll', roles: ['hr', 'admin'] },
-  { to: '/reports', icon: FileText, label: 'Reports', roles: ['hr', 'admin'] },
+  // { to: '/reports', icon: FileText, label: 'Reports', roles: ['hr', 'admin'] },
 ]
 
 const Sidebar = ({ open, setOpen }) => {
