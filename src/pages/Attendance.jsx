@@ -180,46 +180,95 @@ const Attendance = () => {
     return colors[status] || 'bg-gray-100 text-gray-700'
   }
 
-  const handleExportCSV = async () => {
-    if (!exportMonth) {
-      toast.error('Please select a month to export')
-      return
-    }
+  // const handleExportCSV = async () => {
+  //   if (!exportMonth) {
+  //     toast.error('Please select a month to export')
+  //     return
+  //   }
 
-    setIsExporting(true)
-    try {
-      const token = localStorage.getItem('token')
-      const params = new URLSearchParams({
-        month: exportMonth,
-        ...(exportDepartment && { department_id: exportDepartment })
-      })
+  //   setIsExporting(true)
+  //   try {
+  //     const token = localStorage.getItem('token')
+  //     const params = new URLSearchParams({
+  //       month: exportMonth,
+  //       ...(exportDepartment && { department_id: exportDepartment })
+  //     })
 
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/attendance/hr-export-csv?${params.toString()}`, {
+  //     const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/attendance/hr-export-csv?${params.toString()}`, {
+  //       headers: {
+  //         'Authorization': `Bearer ${token}`
+  //       },
+  //       responseType: 'blob'
+  //     })
+
+  //     // Create download link
+  //     const blob = new Blob([response.data], { type: 'text/csv' })
+  //     const url = window.URL.createObjectURL(blob)
+  //     const link = document.createElement('a')
+  //     link.href = url
+  //     link.download = `attendance_${exportMonth}_dept_${exportDepartment || 'all'}.csv`
+  //     document.body.appendChild(link)
+  //     link.click()
+  //     document.body.removeChild(link)
+  //     window.URL.revokeObjectURL(url)
+
+  //     toast.success('Attendance exported successfully!')
+  //   } catch (error) {
+  //     console.error('Export error:', error)
+  //     toast.error(error.response?.data?.message || 'Failed to export attendance')
+  //   } finally {
+  //     setIsExporting(false)
+  //   }
+  // }
+
+const handleDetailedExport = async () => {
+  if (!exportMonth) {
+    toast.error('Please select a month to export')
+    return
+  }
+
+  setIsExporting(true)
+  try {
+    // Convert month to start and end dates
+    const monthStart = format(new Date(exportMonth + '-01'), 'yyyy-MM-dd')
+    const monthEnd = format(new Date(new Date(exportMonth + '-01').getFullYear(), new Date(exportMonth + '-01').getMonth() + 1, 0), 'yyyy-MM-dd')
+
+    const token = localStorage.getItem('token')
+    const params = new URLSearchParams({
+      start_date: monthStart,
+      end_date: monthEnd,
+      ...(exportDepartment && { department_id: exportDepartment })
+    })
+
+    const response = await axios.get(
+      `${import.meta.env.VITE_API_BASE_URL}/attendance/detailed-export?${params.toString()}`,
+      {
         headers: {
           'Authorization': `Bearer ${token}`
         },
         responseType: 'blob'
-      })
+      }
+    )
 
-      // Create download link
-      const blob = new Blob([response.data], { type: 'text/csv' })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `attendance_${exportMonth}_dept_${exportDepartment || 'all'}.csv`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
+    // Create download link
+    const blob = new Blob([response.data], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `detailed_attendance_${exportMonth}_dept_${exportDepartment || 'all'}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
 
-      toast.success('Attendance exported successfully!')
-    } catch (error) {
-      console.error('Export error:', error)
-      toast.error(error.response?.data?.message || 'Failed to export attendance')
-    } finally {
-      setIsExporting(false)
-    }
-  }
+    toast.success('Detailed attendance report exported successfully!')
+  } catch (error) {
+console.error('Export error:', error)
+toast.error(error.response?.data?.message || 'Failed to export detailed report')
+} finally {
+setIsExporting(false)
+}
+}
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0]
@@ -690,7 +739,7 @@ const Attendance = () => {
 
                 <div className="flex items-end">
                   <button
-                    onClick={handleExportCSV}
+                    onClick={handleDetailedExport}
                     disabled={isExporting}
                     className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
