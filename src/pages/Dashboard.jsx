@@ -68,7 +68,7 @@ const Dashboard = () => {
       </div>
 
       {/* User Attendance Status - Always visible */}
-      <motion.div
+      {/* <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl p-4 md:p-6 shadow-sm border border-primary-200"
@@ -83,7 +83,7 @@ const Dashboard = () => {
 
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className={`p-3 md:p-4 rounded-lg ${todayStatus?.checked_in ? 'bg-green-100' : 'bg-white'}`}>
-            <p className="text-xs md:text-sm font-medium text-gray-700 mb-1">Check In</p>
+            <p className="text-xs md:text-sm font-medium text-gray-700 mb-1">Punch In</p>
             <p className="text-sm md:text-base font-semibold text-gray-900">
               {todayStatus?.attendance?.checkin_time 
                 ? format(new Date(todayStatus.attendance.checkin_time), 'hh:mm a')
@@ -91,7 +91,7 @@ const Dashboard = () => {
             </p>
           </div>
           <div className={`p-3 md:p-4 rounded-lg ${todayStatus?.checked_out ? 'bg-green-100' : 'bg-white'}`}>
-            <p className="text-xs md:text-sm font-medium text-gray-700 mb-1">Check Out</p>
+            <p className="text-xs md:text-sm font-medium text-gray-700 mb-1">Punch Out</p>
             <p className="text-sm md:text-base font-semibold text-gray-900">
               {todayStatus?.attendance?.checkout_time 
                 ? format(new Date(todayStatus.attendance.checkout_time), 'hh:mm a')
@@ -107,7 +107,7 @@ const Dashboard = () => {
           <LogIn className="w-4 h-4 md:w-5 md:h-5" />
           <span className="text-sm md:text-base">Go to Attendance</span>
         </button>
-      </motion.div>
+      </motion.div> */}
 
       {/* HR Stats - Only visible to HR */}
       {isHR && (
@@ -192,7 +192,7 @@ const Dashboard = () => {
               <span className="text-xs md:text-sm text-gray-600">Work Hours Today</span>
               <span className="text-sm md:text-base font-semibold text-gray-900">
                 {todayStatus?.attendance?.work_hours 
-                  ? `${todayStatus.attendance.work_hours.toFixed(2)} hrs`
+                  ? `${todayStatus.attendance.work_hours} hrs`
                   : '0 hrs'}
               </span>
             </div>

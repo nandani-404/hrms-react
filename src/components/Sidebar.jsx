@@ -9,17 +9,19 @@ import {
   Home,
   Calendar,
   Headphones,
-  X 
+  X,
+  ClipboardCheck
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const allNavItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['all'] },
-  { to: '/attendance', icon: Clock, label: 'Attendance', roles: ['all'] },
+  // { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['all'] },
+  { to: '/my-attendance', icon: ClipboardCheck, label: 'My Attendance', roles: ['all'] },
+  { to: '/attendance', icon: Clock, label: 'Attendance', roles: ['hr', 'admin'] },
   { to: '/employees', icon: Users, label: 'Employees', roles: ['hr', 'admin'] },
-  { to: '/wfh-requests', icon: Home, label: 'WFH Requests', roles: ['hr', 'admin'] },
-  { to: '/leave-requests', icon: Calendar, label: 'Leave Requests', roles: ['hr', 'admin'] },
-  { to: '/helpdesk', icon: Headphones, label: 'Helpdesk', roles: ['hr', 'admin'] },
+  { to: '/wfh-requests', icon: Home, label: 'WFH Requests', roles: ['all'] },
+  { to: '/leave-requests', icon: Calendar, label: 'Leave Requests', roles: ['all'] },
+  // { to: '/helpdesk', icon: Headphones, label: 'Helpdesk', roles: ['hr', 'admin'] },
   { to: '/payroll', icon: DollarSign, label: 'Payroll', roles: ['hr', 'admin'] },
   { to: '/reports', icon: FileText, label: 'Reports', roles: ['hr', 'admin'] },
 ]
@@ -56,10 +58,7 @@ const Sidebar = ({ open, setOpen }) => {
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center">
-              <span className="text-white font-bold text-lg">HR</span>
-            </div>
-            <span className="font-semibold text-gray-900">HR Portal</span>
+            <img src="https://truckmitr.com/public/front/assets/images/logotrick.png" alt="" width={100}/>
           </div>
           <button
             onClick={() => setOpen(false)}
@@ -94,12 +93,12 @@ const Sidebar = ({ open, setOpen }) => {
         </nav>
 
         {/* User Role Badge */}
-        <div className="absolute bottom-4 left-4 right-4">
+        {/* <div className="absolute bottom-4 left-4 right-4">
           <div className="bg-gray-100 rounded-lg p-3">
             <p className="text-xs text-gray-500 mb-1">Logged in as</p>
             <p className="text-sm font-medium text-gray-900 capitalize">{userRole}</p>
           </div>
-        </div>
+        </div> */}
       </aside>
     </>
   )

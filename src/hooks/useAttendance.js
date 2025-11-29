@@ -6,10 +6,9 @@ export const useAttendance = (params = {}) => {
     queryKey: ['attendance', params],
     queryFn: async () => {
       const queryString = new URLSearchParams(params).toString()
-      const response = await api.get(`/attendance?${queryString}`)
-      return response.data.data || []
+      const response = await api.get(`/attendance${queryString ? `?${queryString}` : ''}`)
+      return response.data.data || response.data.attendance || []
     },
-    enabled: !!params.date,
   })
 }
 
@@ -18,9 +17,20 @@ export const useAttendanceReport = (startDate, endDate) => {
     queryKey: ['attendance-report', startDate, endDate],
     queryFn: async () => {
       const response = await api.get(`/attendance/report?start_date=${startDate}&end_date=${endDate}`)
-      return response.data.data
+      return response.data.data || response.data
     },
     enabled: !!startDate && !!endDate,
+  })
+}
+
+export const useHrExport = (month, year) => {
+  return useQuery({
+    queryKey: ['hr-export', month, year],
+    queryFn: async () => {
+      const response = await api.get(`/attendance/hr-export?month=${month}&year=${year}`)
+      return response.data.data || response.data
+    },
+    enabled: !!month && !!year,
   })
 }
 

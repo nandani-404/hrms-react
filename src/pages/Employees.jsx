@@ -3,13 +3,21 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Search, Edit, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useEmployees, useCreateEmployee, useUpdateEmployee, useDepartments, useStates } from '../hooks/useEmployees'
+import { useAuth } from '../context/AuthContext'
+import { getTeamMembers, canManageTeam } from '../utils/teamFilter'
 
 const Employees = () => {
-  const { data: employees = [], isLoading: loading } = useEmployees()
+  const { user } = useAuth()
+  const { data: employeesData = [], isLoading: loading } = useEmployees()
   const { data: departments = [] } = useDepartments()
   const { data: states = [] } = useStates()
   const createEmployee = useCreateEmployee()
   const updateEmployee = useUpdateEmployee()
+  
+  // Filter employees based on team
+  const allEmployees = employeesData?.data || employeesData || []
+  const employees = getTeamMembers(allEmployees, user)
+  const canManage = canManageTeam(user)
 
   const [searchTerm, setSearchTerm] = useState('')
   const [showModal, setShowModal] = useState(false)
@@ -100,7 +108,6 @@ const Employees = () => {
       toast.error(errorMessage, { id: loadingToast })
     }
   }
-
 
 
   const handleEdit = (employee) => {
@@ -238,16 +245,24 @@ const Employees = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Employees</h1>
-          <p className="text-gray-600 mt-1">{employees.length} total employees</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {user?.is_reporting_manager === 1 && user?.role !== 'admin' && user?.role !== 'hr' 
+              ? 'My Team' 
+              : 'Employees'}
+          </h1>
+          <p className="text-gray-600 mt-1">
+            {employees.length} {user?.is_reporting_manager === 1 && user?.role !== 'admin' && user?.role !== 'hr' ? 'team members' : 'total employees'}
+          </p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          Add Employee
-        </button>
+        {(user?.role === 'admin' || user?.role === 'hr') && (
+          <button
+            onClick={() => setShowModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Add Employee
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100">
@@ -268,12 +283,10 @@ const Employees = () => {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mobile</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Designation</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact Info</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Designation / Department</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reporting Manager</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
@@ -286,7 +299,6 @@ const Employees = () => {
                   animate={{ opacity: 1 }}
                   className="hover:bg-gray-50 transition-colors"
                 >
-                  <td className="px-6 py-4 text-sm text-gray-900">{employee.emp_id}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       {employee.photo_path && (
@@ -299,12 +311,18 @@ const Employees = () => {
                       )}
                       <span className="text-sm font-medium text-gray-900">{employee.full_name}</span>
                     </div>
+                    <td className="py-1 text-xs text-gray-900">{employee.emp_id}</td>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{employee.email}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{employee.mobile}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{employee.designation}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{getDepartmentName(employee.department_id || employee.department)}</td>
-                  <td className="px-6 py-4 text-sm">
+                  <td className="px-6 py-4 text-sm text-gray-600">{employee.email}<br/>{employee.mobile}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+  {employee.designation}
+  <br />
+  <div className="inline-block mt-1 px-2 py-1 text-xs font-medium text-gray-900 bg-orange-300 rounded-full">
+    {getDepartmentName(employee.department_id || employee.department)}
+  </div>
+</td>
+<td className="py-1 text-sm text-gray-900">{employee.reporting_manager}</td>
+<td className="px-6 py-4 text-sm">
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                       employee.status === 'Verified' 
                         ? 'bg-green-100 text-green-800' 

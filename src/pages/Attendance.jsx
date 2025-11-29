@@ -1,16 +1,19 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, Filter, Camera, LogIn, LogOut, Clock, CheckCircle, XCircle, User } from 'lucide-react'
+import { Calendar, Filter, Camera, LogIn, LogOut, Clock, CheckCircle, XCircle, User, ArrowUpDown, Image as ImageIcon, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { useAttendance, useCheckIn, useCheckOut, useEmployeeTodayStatus } from '../hooks/useAttendance'
 import { useEmployees } from '../hooks/useEmployees'
 import { useAuth } from '../context/AuthContext'
+import { formatWorkHours } from '../utils/timeFormat'
 import toast from 'react-hot-toast'
+import { getTeamMembers, getTeamMemberIds, canManageTeam } from '../utils/teamFilter'
 
 const Attendance = () => {
   const { user } = useAuth()
   console.log(user)
   const isHR = user?.role === 'hr' || user?.role === 'admin'
+  const canManage = canManageTeam(user)
   
   // Check-in/out states
   const [showCamera, setShowCamera] = useState(false)
@@ -22,23 +25,53 @@ const Attendance = () => {
 
   // HR filters
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [selectedEmployee, setSelectedEmployee] = useState('')
+  const [selectedStatus, setSelectedStatus] = useState('')
+  const [selectedShift, setSelectedShift] = useState('')
+  const [selectedType, setSelectedType] = useState('')
+  const [sortBy, setSortBy] = useState('date')
+  const [sortOrder, setSortOrder] = useState('desc')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [perPage, setPerPage] = useState(15)
+  const [showSelfie, setShowSelfie] = useState(null)
 
   // Queries
   const { data: todayStatus, refetch: refetchStatus } = useEmployeeTodayStatus(user?.emp_id)
   const checkInMutation = useCheckIn()
   const checkOutMutation = useCheckOut()
 
-  const params = isHR ? {
-    date: selectedDate,
-    ...(selectedEmployee && { employee_id: selectedEmployee })
+  // Get all employees and filter by team
+  const { data: employeesData } = useEmployees()
+  const allEmployees = employeesData?.data || employeesData || []
+  const teamMembers = getTeamMembers(allEmployees, user)
+  const teamMemberIds = getTeamMemberIds(allEmployees, user)
+
+  const params = canManage ? {
+    ...(selectedDate && !startDate && !endDate && { date: selectedDate }),
+    ...(startDate && { start_date: startDate }),
+    ...(endDate && { end_date: endDate }),
+    ...(selectedEmployee && { employee_id: selectedEmployee }),
+    ...(selectedStatus && { status: selectedStatus }),
+    ...(selectedShift && { shift_id: selectedShift }),
+    ...(selectedType && { is_manual: selectedType === 'manual' ? '1' : '0' }),
+    sort_by: sortBy,
+    sort_order: sortOrder,
+    page: currentPage,
+    per_page: perPage
   } : {}
 
-  const { data: attendanceData, isLoading: loading } = useAttendance(params)
-  const { data: employeesData } = useEmployees()
+  const { data: attendanceResponse, isLoading: loading } = useAttendance(params)
   
-  const attendance = Array.isArray(attendanceData) ? attendanceData : []
-  const employees = Array.isArray(employeesData) ? employeesData : []
+  const attendanceData = attendanceResponse?.data || attendanceResponse || {}
+  const allAttendance = Array.isArray(attendanceData) ? attendanceData : (attendanceData.data || [])
+  // Filter attendance by team if user is a team manager (not admin/HR)
+  const attendance = (canManage && !isHR) 
+    ? allAttendance.filter(record => teamMemberIds.includes(record.employee_id))
+    : allAttendance
+  const pagination = attendanceData.data ? attendanceData : null
+  const employees = teamMembers
 
   const checkedIn = todayStatus?.checked_in || false
   const checkedOut = todayStatus?.checked_out || false
@@ -90,27 +123,30 @@ const Attendance = () => {
   }
 
   const submitAttendance = async () => {
-    if (!capturedImage) {
+    // For check-in, selfie is required
+    if (isCheckingIn && !capturedImage) {
       toast.error('Please capture a selfie first')
       return
     }
 
-    const formData = new FormData()
-    formData.append('employee_id', user.emp_id)
-    formData.append('selfie', capturedImage, 'selfie.jpg')
-
     try {
       if (isCheckingIn) {
+        const formData = new FormData()
+        formData.append('employee_id', user.emp_id)
+        formData.append('selfie', capturedImage, 'selfie.jpg')
+        
         await checkInMutation.mutateAsync(formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         })
         toast.success('Checked in successfully!')
       } else {
+        // For check-out, no selfie needed
         await checkOutMutation.mutateAsync({ employee_id: user.emp_id })
         toast.success('Checked out successfully!')
       }
       
       setCapturedImage(null)
+      setShowCamera(false)
       refetchStatus()
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to submit attendance')
@@ -138,7 +174,7 @@ const Attendance = () => {
       <div>
         <h1 className="text-xl md:text-2xl font-bold text-gray-900">Attendance</h1>
         <p className="text-sm md:text-base text-gray-600 mt-1">
-          {isHR ? 'Manage employee attendance' : 'Mark your attendance'}
+          {isHR ? 'Manage employee attendance' : canManage ? 'Manage team attendance' : 'Mark your attendance'}
         </p>
       </div>
 
@@ -154,7 +190,6 @@ const Attendance = () => {
           </div>
         </div>
 
-        {/* Status Display */}
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className={`p-3 md:p-4 rounded-lg ${checkedIn ? 'bg-green-100' : 'bg-gray-100'}`}>
             <div className="flex items-center gap-2 mb-1">
@@ -163,7 +198,7 @@ const Attendance = () => {
               ) : (
                 <XCircle className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />
               )}
-              <span className="text-xs md:text-sm font-medium text-gray-700">Check In</span>
+              <span className="text-xs md:text-sm font-medium text-gray-700">Punch In</span>
             </div>
             <p className="text-xs md:text-sm text-gray-600">
               {todayStatus?.attendance?.checkin_time 
@@ -179,7 +214,7 @@ const Attendance = () => {
               ) : (
                 <XCircle className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />
               )}
-              <span className="text-xs md:text-sm font-medium text-gray-700">Check Out</span>
+              <span className="text-xs md:text-sm font-medium text-gray-700">Punch Out</span>
             </div>
             <p className="text-xs md:text-sm text-gray-600">
               {todayStatus?.attendance?.checkout_time 
@@ -189,7 +224,6 @@ const Attendance = () => {
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex gap-3">
           {!checkedIn && (
             <button
@@ -197,17 +231,27 @@ const Attendance = () => {
               className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
             >
               <LogIn className="w-4 h-4 md:w-5 md:h-5" />
-              <span className="text-sm md:text-base">Check In</span>
+              <span className="text-sm md:text-base">Punch In</span>
             </button>
           )}
           
           {checkedIn && !checkedOut && (
             <button
-              onClick={() => startCamera(false)}
+              onClick={async () => {
+                if (window.confirm('Are you sure you want to punch out?')) {
+                  try {
+                    await checkOutMutation.mutateAsync({ employee_id: user.emp_id })
+                    toast.success('Checked out successfully!')
+                    refetchStatus()
+                  } catch (error) {
+                    toast.error(error.response?.data?.message || 'Failed to check out')
+                  }
+                }
+              }}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
             >
               <LogOut className="w-4 h-4 md:w-5 md:h-5" />
-              <span className="text-sm md:text-base">Check Out</span>
+              <span className="text-sm md:text-base">Punch Out</span>
             </button>
           )}
 
@@ -222,7 +266,7 @@ const Attendance = () => {
         {todayStatus?.attendance?.work_hours && (
           <div className="mt-3 p-3 bg-white rounded-lg">
             <p className="text-xs md:text-sm text-gray-600">
-              Work Hours: <span className="font-semibold text-gray-900">{todayStatus.attendance.work_hours.toFixed(2)} hrs</span>
+              Work Hours: <span className="font-semibold text-gray-900">{formatWorkHours(todayStatus.attendance.work_hours)}</span>
             </p>
           </div>
         )}
@@ -245,7 +289,7 @@ const Attendance = () => {
             >
               <div className="p-4 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {isCheckingIn ? 'Check In' : 'Check Out'} - Capture Selfie
+                  {isCheckingIn ? 'Punch In' : 'Punch Out'} - Capture Selfie
                 </h3>
               </div>
 
@@ -307,49 +351,170 @@ const Attendance = () => {
         )}
       </AnimatePresence>
 
-      {/* HR Section - Only visible to HR */}
-      {isHR && (
+      {/* HR/Manager Section - Only visible to HR and Team Managers */}
+      {canManage && (
         <>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Attendance Records</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
+            <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">
+              {isHR ? 'Attendance Records' : 'Team Attendance Records'}
+            </h3>
+            
+            {/* Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
-                </div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Single Date</label>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => {
+                    setSelectedDate(e.target.value)
+                    setStartDate('')
+                    setEndDate('')
+                    setCurrentPage(1)
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value)
+                    setSelectedDate('')
+                    setCurrentPage(1)
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => {
+                    setEndDate(e.target.value)
+                    setSelectedDate('')
+                    setCurrentPage(1)
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Employee</label>
-                <div className="relative">
-                  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <select
-                    value={selectedEmployee}
-                    onChange={(e) => setSelectedEmployee(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none"
-                  >
-                    <option value="">All Employees</option>
-                    {employees.map((emp) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.full_name} ({emp.emp_id})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <select
+                  value={selectedEmployee}
+                  onChange={(e) => {
+                    setSelectedEmployee(e.target.value)
+                    setCurrentPage(1)
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="">{isHR ? 'All Employees' : 'All Team Members'}</option>
+                  {employees.map((emp) => (
+                    <option key={emp.emp_id} value={emp.emp_id}>
+                      {emp.full_name} ({emp.emp_id})
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div className="flex items-end">
-                <div className="text-sm text-gray-600 py-2">
-                  {attendance.length} records found
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => {
+                    setSelectedStatus(e.target.value)
+                    setCurrentPage(1)
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="">All Status</option>
+                  <option value="present">Present</option>
+                  <option value="absent">Absent</option>
+                  <option value="half_day">Half Day</option>
+                  <option value="late">Late</option>
+                  <option value="on_leave">On Leave</option>
+                </select>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Shift</label>
+                <select
+                  value={selectedShift}
+                  onChange={(e) => {
+                    setSelectedShift(e.target.value)
+                    setCurrentPage(1)
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="">All Shifts</option>
+                  <option value="1">Shift 1</option>
+                  <option value="2">Shift 2</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                <select
+                  value={selectedType}
+                  onChange={(e) => {
+                    setSelectedType(e.target.value)
+                    setCurrentPage(1)
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="">All Types</option>
+                  <option value="auto">Auto</option>
+                  <option value="manual">Manual</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Per Page</label>
+                <select
+                  value={perPage}
+                  onChange={(e) => {
+                    setPerPage(Number(e.target.value))
+                    setCurrentPage(1)
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="10">10</option>
+                  <option value="15">15</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Clear Filters */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm text-gray-600">
+                {pagination?.total || attendance.length} records found
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedDate(format(new Date(), 'yyyy-MM-dd'))
+                  setStartDate('')
+                  setEndDate('')
+                  setSelectedEmployee('')
+                  setSelectedStatus('')
+                  setSelectedShift('')
+                  setSelectedType('')
+                  setSortBy('date')
+                  setSortOrder('desc')
+                  setCurrentPage(1)
+                }}
+                className="px-4 py-2 text-sm text-primary-600 hover:text-primary-700 font-medium"
+              >
+                Clear Filters
+              </button>
             </div>
           </div>
 
@@ -358,71 +523,220 @@ const Attendance = () => {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
             </div>
           ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-100">
-                    <tr>
-                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
-                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check In</th>
-                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check Out</th>
-                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hours</th>
-                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {attendance.length === 0 ? (
+            <>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-100">
                       <tr>
-                        <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                          No attendance records found
-                        </td>
-                      </tr>
-                    ) : (
-                      attendance.map((record) => (
-                        <motion.tr
-                          key={record.id}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="hover:bg-gray-50 transition-colors"
+                        <th 
+                          className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
+                          onClick={() => {
+                            setSortBy('employee_id')
+                            setSortOrder(sortBy === 'employee_id' && sortOrder === 'asc' ? 'desc' : 'asc')
+                          }}
                         >
-                          <td className="px-4 md:px-6 py-4">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {record.employee?.full_name}
+                          <div className="flex items-center gap-1">
+                            Employee
+                            <ArrowUpDown className="w-3 h-3" />
+                          </div>
+                        </th>
+                        <th 
+                          className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
+                          onClick={() => {
+                            setSortBy('date')
+                            setSortOrder(sortBy === 'date' && sortOrder === 'asc' ? 'desc' : 'asc')
+                          }}
+                        >
+                          <div className="flex items-center gap-1">
+                            Date
+                            <ArrowUpDown className="w-3 h-3" />
+                          </div>
+                        </th>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Punch In</th>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Punch Out</th>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hours</th>
+                        <th 
+                          className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
+                          onClick={() => {
+                            setSortBy('attendance_status')
+                            setSortOrder(sortBy === 'attendance_status' && sortOrder === 'asc' ? 'desc' : 'asc')
+                          }}
+                        >
+                          <div className="flex items-center gap-1">
+                            Status
+                            <ArrowUpDown className="w-3 h-3" />
+                          </div>
+                        </th>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Selfie</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {attendance.length === 0 ? (
+                        <tr>
+                          <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
+                            No attendance records found
+                          </td>
+                        </tr>
+                      ) : (
+                        attendance.map((record) => (
+                          <motion.tr
+                            key={record.id}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="hover:bg-gray-50 transition-colors"
+                          >
+                            <td className="px-4 md:px-6 py-4">
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {record.employee?.full_name || 'N/A'}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {record.employee_id}
+                                </div>
                               </div>
-                              <div className="text-xs text-gray-500">
-                                {record.employee?.emp_id}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 md:px-6 py-4 text-sm text-gray-600">
-                            {format(new Date(record.date), 'MMM dd, yyyy')}
-                          </td>
-                          <td className="px-4 md:px-6 py-4 text-sm text-gray-600">
-                            {record.checkin_time ? format(new Date(record.checkin_time), 'hh:mm a') : '-'}
-                          </td>
-                          <td className="px-4 md:px-6 py-4 text-sm text-gray-600">
-                            {record.checkout_time ? format(new Date(record.checkout_time), 'hh:mm a') : '-'}
-                          </td>
-                          <td className="px-4 md:px-6 py-4 text-sm text-gray-600">
-                            {record.work_hours ? `${record.work_hours.toFixed(2)} hrs` : '-'}
-                          </td>
-                          <td className="px-4 md:px-6 py-4">
-                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(record.attendance_status)}`}>
-                              {record.attendance_status?.replace('_', ' ')}
-                            </span>
-                          </td>
-                        </motion.tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                            </td>
+                            <td className="px-4 md:px-6 py-4 text-sm text-gray-600">
+                              {format(new Date(record.date), 'MMM dd, yyyy')}
+                            </td>
+                            <td className="px-4 md:px-6 py-4 text-sm text-gray-600">
+                              {record.checkin_time ? format(new Date(record.checkin_time), 'hh:mm a') : '-'}
+                            </td>
+                            <td className="px-4 md:px-6 py-4 text-sm text-gray-600">
+                              {record.checkout_time ? format(new Date(record.checkout_time), 'hh:mm a') : '-'}
+                            </td>
+                            <td className="px-4 md:px-6 py-4 text-sm text-gray-600">
+                              {record.work_hours ? formatWorkHours(record.work_hours) : '-'}
+                            </td>
+                            <td className="px-4 md:px-6 py-4">
+                              <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(record.attendance_status)}`}>
+                                {record.attendance_status?.replace('_', ' ')}
+                              </span>
+                            </td>
+                            <td className="px-4 md:px-6 py-4">
+                              <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                                record.is_manual ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                              }`}>
+                                {record.is_manual ? 'Manual' : 'Auto'}
+                              </span>
+                            </td>
+                            <td className="px-4 md:px-6 py-4">
+                              {record.selfie ? (
+                                <img
+                                  src={`${import.meta.env.VITE_BASE_SELFIE_FILE_PATH}/${record.selfie}`}
+                                  alt="selfie"
+                                  onClick={() => setShowSelfie(record.selfie)}
+                                  className="w-10 h-10 rounded-full object-cover cursor-pointer hover:scale-110 transition-transform"
+                                />
+                              ) : (
+                                <span className="text-gray-400 text-xs">No selfie</span>
+                              )}
+                            </td>
+
+                          </motion.tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+
+              {/* Pagination */}
+              {pagination && pagination.last_page > 1 && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    Showing {pagination.from} to {pagination.to} of {pagination.total} records
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
+                        let pageNum
+                        if (pagination.last_page <= 5) {
+                          pageNum = i + 1
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1
+                        } else if (currentPage >= pagination.last_page - 2) {
+                          pageNum = pagination.last_page - 4 + i
+                        } else {
+                          pageNum = currentPage - 2 + i
+                        }
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                              currentPage === pageNum
+                                ? 'bg-primary-600 text-white'
+                                : 'text-gray-700 hover:bg-gray-50'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <button
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={currentPage === pagination.last_page}
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </>
       )}
+
+      {/* Selfie Modal */}
+      <AnimatePresence>
+        {showSelfie && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowSelfie(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.8 }}
+              className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-3 border-b border-gray-200 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">Selfie Preview</h3>
+                <button
+                  onClick={() => setShowSelfie(null)}
+                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
+
+              <div className="p-4 flex items-center justify-center">
+                <img
+                  src={`${import.meta.env.VITE_BASE_SELFIE_FILE_PATH}/${showSelfie}`}
+                  alt="Selfie"
+                  className="rounded-lg w-full object-contain max-h-[300px]"
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   )
 }

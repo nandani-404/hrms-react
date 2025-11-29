@@ -1,14 +1,16 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
-import { Lock, Mail } from 'lucide-react'
+import { Lock, Mail, Eye, EyeOff } from 'lucide-react'
 
 const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
   const { login } = useAuth()
   const navigate = useNavigate()
 
@@ -19,7 +21,7 @@ const Login = () => {
 
     try {
       await login(email, password)
-      navigate('/dashboard')
+      navigate('/my-attendance')
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed')
     } finally {
@@ -37,10 +39,10 @@ const Login = () => {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-100 mb-4">
-              <span className="text-2xl font-bold text-primary-600">HR</span>
+              <img src="https://truckmitr.com/public/front/assets/images/logotrick.png" alt="" width={50}/>
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
-            <p className="text-gray-600 mt-2">Sign in to access HR Portal</p>
+            <p className="text-gray-600 mt-2">Sign in to access Dashboard</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -54,6 +56,7 @@ const Login = () => {
               </motion.div>
             )}
 
+            {/* EMAIL */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
@@ -71,23 +74,46 @@ const Login = () => {
               </div>
             </div>
 
+            {/* PASSWORD */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors"
+                >
+                  Forgot Password?
+                </Link>
+              </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                   placeholder="••••••••"
                   required
                 />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
               </div>
             </div>
 
+            {/* SUBMIT */}
             <button
               type="submit"
               disabled={loading}

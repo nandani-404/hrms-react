@@ -5,9 +5,11 @@ import { AuthProvider } from './context/AuthContext'
 import { queryClient } from './lib/queryClient'
 import Layout from './components/Layout'
 import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
 import Dashboard from './pages/Dashboard'
 import Employees from './pages/Employees'
 import Attendance from './pages/Attendance'
+import MyAttendance from './pages/MyAttendance'
 import WfhRequests from './pages/WfhRequests'
 import LeaveRequests from './pages/LeaveRequests'
 import Helpdesk from './pages/Helpdesk'
@@ -22,11 +24,13 @@ function App() {
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="employees" element={<Employees />} />
               <Route path="attendance" element={<Attendance />} />
+              <Route path="my-attendance" element={<MyAttendance />} />
               <Route path="wfh-requests" element={<WfhRequests />} />
               <Route path="leave-requests" element={<LeaveRequests />} />
               <Route path="helpdesk" element={<Helpdesk />} />

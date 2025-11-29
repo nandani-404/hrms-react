@@ -1,11 +1,30 @@
 import { Menu, Bell, User, LogOut } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const Header = ({ onMenuClick }) => {
   const { user, logout } = useAuth()
   const [showProfile, setShowProfile] = useState(false)
+  const [greeting, setGreeting] = useState('')
+
+  useEffect(() => {
+    const updateGreeting = () => {
+      const hour = new Date().getHours()
+      if (hour < 12) {
+        setGreeting('Good Morning')
+      } else if (hour < 17) {
+        setGreeting('Good Afternoon')
+      } else {
+        setGreeting('Good Evening')
+      }
+    }
+
+    updateGreeting()
+    // Update greeting every minute
+    const interval = setInterval(updateGreeting, 60000)
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
@@ -19,7 +38,7 @@ const Header = ({ onMenuClick }) => {
 
         <div className="flex-1 lg:flex-none">
           <h1 className="text-xl font-semibold text-gray-900 ml-2 lg:ml-0">
-            HR Portal
+            {greeting}, {user?.name || 'User'}
           </h1>
         </div>
 

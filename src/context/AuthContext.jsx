@@ -22,8 +22,21 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/login', { email, password_hash })
       const { token, user } = response.data
       localStorage.setItem('token', token)
-      localStorage.setItem('user', JSON.stringify(user))
-      setUser(user)
+      
+      // Fetch full profile data
+      try {
+        const profileResponse = await api.get('/my-profile', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        const fullUserData = { ...user, ...profileResponse.data.employee }
+        localStorage.setItem('user', JSON.stringify(fullUserData))
+        setUser(fullUserData)
+      } catch (profileError) {
+        // If profile fetch fails, use basic user data
+        localStorage.setItem('user', JSON.stringify(user))
+        setUser(user)
+      }
+      
       toast.success('Login successful')
       return response.data
     } catch (error) {
