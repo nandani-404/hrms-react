@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, Filter, Camera, LogIn, LogOut, Clock, CheckCircle, XCircle, User, ArrowUpDown, Image as ImageIcon, X } from 'lucide-react'
+import { Camera, LogIn, LogOut, Clock, CheckCircle, XCircle, User, ArrowUpDown, X, Download, Upload, FileText } from 'lucide-react'
 import { format } from 'date-fns'
 import { useAttendance, useCheckIn, useCheckOut, useEmployeeTodayStatus } from '../hooks/useAttendance'
-import { useEmployees } from '../hooks/useEmployees'
+import { useEmployees, useDepartments } from '../hooks/useEmployees'
 import { useAuth } from '../context/AuthContext'
 import { formatWorkHours } from '../utils/timeFormat'
 import toast from 'react-hot-toast'
 import { getTeamMembers, getTeamMemberIds, canManageTeam } from '../utils/teamFilter'
+import axios from 'axios'
 
 const Attendance = () => {
   const { user } = useAuth()
@@ -36,6 +37,16 @@ const Attendance = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [perPage, setPerPage] = useState(15)
   const [showSelfie, setShowSelfie] = useState(null)
+  const [exportMonth, setExportMonth] = useState(format(new Date(), 'yyyy-MM'))
+  const [exportDepartment, setExportDepartment] = useState('')
+  const [isExporting, setIsExporting] = useState(false)
+  
+  // CSV Upload states
+  const [uploadMonth, setUploadMonth] = useState(format(new Date(), 'yyyy-MM'))
+  const [uploadFile, setUploadFile] = useState(null)
+  const [replaceExisting, setReplaceExisting] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef(null)
 
   // Queries
   const { data: todayStatus, refetch: refetchStatus } = useEmployeeTodayStatus(user?.emp_id)
@@ -44,6 +55,7 @@ const Attendance = () => {
 
   // Get all employees and filter by team
   const { data: employeesData } = useEmployees()
+  const { data: departments = [], isLoading: departmentsLoading } = useDepartments()
   const allEmployees = employeesData?.data || employeesData || []
   const teamMembers = getTeamMembers(allEmployees, user)
   const teamMemberIds = getTeamMemberIds(allEmployees, user)
@@ -166,6 +178,117 @@ const Attendance = () => {
       on_leave: 'bg-blue-100 text-blue-700'
     }
     return colors[status] || 'bg-gray-100 text-gray-700'
+  }
+
+  const handleExportCSV = async () => {
+    if (!exportMonth) {
+      toast.error('Please select a month to export')
+      return
+    }
+
+    setIsExporting(true)
+    try {
+      const token = localStorage.getItem('token')
+      const params = new URLSearchParams({
+        month: exportMonth,
+        ...(exportDepartment && { department_id: exportDepartment })
+      })
+
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/attendance/hr-export-csv?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        responseType: 'blob'
+      })
+
+      // Create download link
+      const blob = new Blob([response.data], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `attendance_${exportMonth}_dept_${exportDepartment || 'all'}.csv`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      toast.success('Attendance exported successfully!')
+    } catch (error) {
+      console.error('Export error:', error)
+      toast.error(error.response?.data?.message || 'Failed to export attendance')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      // Validate file type
+      if (!file.name.endsWith('.csv')) {
+        toast.error('Please select a CSV file')
+        return
+      }
+      // Validate file size (10MB max)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('File size must be less than 10MB')
+        return
+      }
+      setUploadFile(file)
+    }
+  }
+
+  const handleUploadCSV = async () => {
+    if (!uploadMonth) {
+      toast.error('Please select a month')
+      return
+    }
+    if (!uploadFile) {
+      toast.error('Please select a CSV file')
+      return
+    }
+
+    setIsUploading(true)
+    try {
+      const token = localStorage.getItem('token')
+      const formData = new FormData()
+      formData.append('file', uploadFile)
+      formData.append('month', uploadMonth)
+      formData.append('uploaded_by', user?.full_name || 'HR')
+      formData.append('approved_by', user?.full_name || 'HR')
+      formData.append('replace_existing', replaceExisting ? '1' : '0')
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/approved-attendance/upload-csv`,
+        formData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      )
+
+      if (response.data.success) {
+        const data = response.data.data
+        toast.success(
+          `Upload successful! Created: ${data.created}, Updated: ${data.updated}, Errors: ${data.errors}`,
+          { duration: 5000 }
+        )
+        
+        // Reset form
+        setUploadFile(null)
+        setReplaceExisting(false)
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
+      }
+    } catch (error) {
+      console.error('Upload error:', error)
+      toast.error(error.response?.data?.message || 'Failed to upload CSV')
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   return (
@@ -517,6 +640,157 @@ const Attendance = () => {
               </button>
             </div>
           </div>
+
+          {/* Export CSV Section */}
+          {isHR && (
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-sm border border-blue-200 p-4 md:p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
+                  <Download className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base md:text-lg font-semibold text-gray-900">Export Monthly Attendance</h3>
+                  <p className="text-xs md:text-sm text-gray-600">Download attendance data in CSV format</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Month</label>
+                  <input
+                    type="month"
+                    value={exportMonth}
+                    onChange={(e) => setExportMonth(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Department (Optional)</label>
+                  <select
+                    value={exportDepartment}
+                    onChange={(e) => setExportDepartment(e.target.value)}
+                    disabled={departmentsLoading}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                  >
+                    <option value="">
+                      {departmentsLoading ? 'Loading departments...' : 'All Departments'}
+                    </option>
+                    {departments && departments.length > 0 ? (
+                      departments.map((dept) => (
+                        <option key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </option>
+                      ))
+                    ) : (
+                      !departmentsLoading && <option disabled>No departments found</option>
+                    )}
+                  </select>
+                </div>
+
+                <div className="flex items-end">
+                  <button
+                    onClick={handleExportCSV}
+                    disabled={isExporting}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Download className="w-4 h-4" />
+                    {isExporting ? 'Exporting...' : 'Export CSV'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Upload Revised Attendance CSV Section */}
+          {isHR && (
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-sm border border-green-200 p-4 md:p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center">
+                  <Upload className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base md:text-lg font-semibold text-gray-900">Upload Revised Attendance</h3>
+                  <p className="text-xs md:text-sm text-gray-600">Upload approved/revised attendance CSV for a month</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Month</label>
+                  <input
+                    type="month"
+                    value={uploadMonth}
+                    onChange={(e) => setUploadMonth(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">CSV File</label>
+                  <div className="flex gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      id="csv-upload"
+                    />
+                    <label
+                      htmlFor="csv-upload"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-green-500 hover:bg-green-50 transition-colors"
+                    >
+                      <FileText className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-600">
+                        {uploadFile ? uploadFile.name : 'Choose CSV file'}
+                      </span>
+                    </label>
+                    {uploadFile && (
+                      <button
+                        onClick={() => {
+                          setUploadFile(null)
+                          if (fileInputRef.current) {
+                            fileInputRef.current.value = ''
+                          }
+                        }}
+                        className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={replaceExisting}
+                    onChange={(e) => setReplaceExisting(e.target.checked)}
+                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                  />
+                  <span className="text-sm text-gray-700">Replace existing records for this month</span>
+                </label>
+
+                <button
+                  onClick={handleUploadCSV}
+                  disabled={isUploading || !uploadFile}
+                  className="flex items-center justify-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Upload className="w-4 h-4" />
+                  {isUploading ? 'Uploading...' : 'Upload CSV'}
+                </button>
+              </div>
+
+              <div className="mt-3 p-3 bg-white rounded-lg">
+                <p className="text-xs text-gray-600">
+                  <strong>Note:</strong> The CSV file should match the exported format with columns: Employee ID, Employee Name, Department, Email, Mobile, Designation, Date, Check In, Check Out, Work Hours, Status, Shift, Manual Entry, Remark
+                </p>
+              </div>
+            </div>
+          )}
 
           {loading ? (
             <div className="flex items-center justify-center h-64">

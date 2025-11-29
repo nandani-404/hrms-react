@@ -17,7 +17,7 @@ import { useAuth } from '../context/AuthContext'
 const allNavItems = [
   // { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['all'] },
   { to: '/my-attendance', icon: ClipboardCheck, label: 'My Attendance', roles: ['all'] },
-  { to: '/attendance', icon: Clock, label: 'Attendance', roles: ['hr', 'admin'] },
+  { to: '/attendance', icon: Clock, label: 'Attendance', roles: ['all'] },
   { to: '/employees', icon: Users, label: 'Employees', roles: ['hr', 'admin'] },
   { to: '/wfh-requests', icon: Home, label: 'WFH Requests', roles: ['all'] },
   { to: '/leave-requests', icon: Calendar, label: 'Leave Requests', roles: ['all'] },

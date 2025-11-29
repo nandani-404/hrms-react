@@ -223,7 +223,7 @@ const Employees = () => {
   }
 
   const getDepartmentName = (deptId) => {
-    const dept = departments.find(d => d.id === parseInt(deptId))
+    const dept = departments?.find(d => d.id === parseInt(deptId))
     return dept ? dept.name : deptId
   }
 

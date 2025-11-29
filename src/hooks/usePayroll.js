@@ -1,19 +1,22 @@
 import { useQuery } from '@tanstack/react-query'
 import api from '../services/api'
 
-export const usePayroll = (startDate, endDate, filters = {}) => {
+export const usePayroll = (params = {}) => {
+  const { start_date, end_date, employee_id, department } = params
+  
   return useQuery({
-    queryKey: ['payroll', startDate, endDate, filters],
+    queryKey: ['payroll', start_date, end_date, employee_id, department],
     queryFn: async () => {
-      const params = new URLSearchParams({
-        start_date: startDate,
-        end_date: endDate,
-        ...filters,
-      })
-      const response = await api.get(`/payroll?${params}`)
+      const queryParams = new URLSearchParams()
+      if (start_date) queryParams.append('start_date', start_date)
+      if (end_date) queryParams.append('end_date', end_date)
+      if (employee_id) queryParams.append('employee_id', employee_id)
+      if (department) queryParams.append('department', department)
+      
+      const response = await api.get(`/payroll?${queryParams.toString()}`)
       return response.data.data
     },
-    enabled: !!startDate && !!endDate,
+    enabled: !!start_date && !!end_date,
   })
 }
 
