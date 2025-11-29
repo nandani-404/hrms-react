@@ -36,10 +36,19 @@ const Header = ({ onMenuClick }) => {
           <Menu className="w-6 h-6 text-gray-600" />
         </button>
 
-        <div className="flex-1 lg:flex-none">
+        <div className="flex flex-1 lg:flex-none gap-3 items-center">
           <h1 className="text-xl font-semibold text-gray-900 ml-2 lg:ml-0">
             {greeting}, {user?.name || 'User'}
           </h1>
+                          {(user?.role === 'hr' || user?.role === 'admin') && (
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                    user?.role === 'admin' 
+                      ? 'bg-purple-100 text-purple-700' 
+                      : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {user?.role === 'admin' ? 'ADMIN' : 'HR / Admin'}
+                  </span>
+                )}
         </div>
 
         <div className="flex items-center gap-2 md:gap-4">
@@ -56,9 +65,11 @@ const Header = ({ onMenuClick }) => {
               <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
                 <User className="w-5 h-5 text-primary-600" />
               </div>
-              <span className="hidden md:block text-sm font-medium text-gray-700">
-                {user?.name || 'HR Admin'}
-              </span>
+              <div className="hidden md:flex flex-col items-start">
+                <span className="text-sm font-medium text-gray-700">
+                  {user?.name || 'HR Admin'}
+                </span>
+              </div>
             </button>
 
             <AnimatePresence>

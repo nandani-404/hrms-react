@@ -416,7 +416,7 @@ setIsExporting(false)
                     toast.success('Checked out successfully!')
                     refetchStatus()
                   } catch (error) {
-                    toast.error(error.response?.data?.message || 'Failed to check out')
+                    toast.error(error.response?.data?.message || 'Failed to punch out')
                   }
                 }
               }}
@@ -835,7 +835,7 @@ setIsExporting(false)
 
               <div className="mt-3 p-3 bg-white rounded-lg">
                 <p className="text-xs text-gray-600">
-                  <strong>Note:</strong> The CSV file should match the exported format with columns: Employee ID, Employee Name, Department, Email, Mobile, Designation, Date, Check In, Check Out, Work Hours, Status, Shift, Manual Entry, Remark
+                  <strong>Note:</strong> The CSV file should match the exported format with columns: Employee ID, Employee Name, Department, Email, Mobile, Designation, Date, Punch In, Punch Out, Work Hours, Status, Shift, Manual Entry, Remark
                 </p>
               </div>
             </div>
