@@ -93,256 +93,302 @@ const Payroll = () => {
   }
 
 const handleDownloadSlip = async (employee) => {
-const doc = new jsPDF()
+  const doc = new jsPDF();
 
-// Helper function to format currency without symbol for PDF
-const formatAmount = (amount) => {
-return new Intl.NumberFormat('en-IN', {
-minimumFractionDigits: 2,
-maximumFractionDigits: 2
-}).format(amount || 0)
-}
+  // Helper function to format currency without symbol for PDF
+  const formatAmount = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount || 0);
+  };
 
-// Get department name
-const deptName = departments.find(d => d.id === parseInt(employee.department))?.name || employee.department || 'N/A'
+  // Get department name
+  const deptName =
+    departments.find((d) => d.id === parseInt(employee.department))?.name ||
+    employee.department ||
+    "N/A";
 
-// Fetch logo as Base64
-const getBase64ImageFromURL = async (url) => {
-  const res = await fetch(url);
-  const blob = await res.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      // reader.result already has the data URL prefix (data:image/png;base64,...)
-      resolve(reader.result);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
+  // Fetch logo as Base64
+  const getBase64ImageFromURL = async (url) => {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  const logoBase64 = await getBase64ImageFromURL("/logo.png");
+
+  // -------------------------------------
+  // 🔥 ADD WATERMARK (center of page)
+  // -------------------------------------
+  doc.saveGraphicsState();
+  doc.setGState(new doc.GState({ opacity: 0.08 })); // light watermark
+
+  const watermarkSize = 120; // Large watermark
+  const centerX = 105 - watermarkSize / 2;
+  const centerY = 150 - watermarkSize / 2;
+
+  doc.addImage(logoBase64, "PNG", centerX, centerY, watermarkSize, watermarkSize);
+
+  doc.restoreGraphicsState();
+  // -------------------------------------
+
+
+  // Company Header with border
+  doc.setFillColor(41, 128, 185);
+  doc.rect(0, 0, 210, 50, "F");
+
+  // Header Text on the left
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(22);
+  doc.setFont("helvetica", "bold");
+  doc.text("TruckMitr Corporate Services Pvt. Ltd", 8, 25);
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  doc.text("SALARY SLIP", 8, 32);
+  doc.setFontSize(9);
+  doc.text(
+    `For the period: ${format(new Date(startDate), "dd MMM yyyy")} to ${format(
+      new Date(endDate),
+      "dd MMM yyyy"
+    )}`,
+    8,
+    38
+  );
+
+  // --------------------------------------------------
+  // 🔥 RECTANGULAR LOGO (NOT SHRUNK) WITH PADDING
+  // --------------------------------------------------
+  const logoWidth = 40; // bigger rectangle logo
+  const logoHeight = 20;
+  const padding = 10;
+  const logoX = 210 - logoWidth - padding;
+  const logoY = 20;
+
+  // White rectangular background with padding
+  doc.setFillColor(255, 255, 255);
+  doc.rect(logoX - 3, logoY - 3, logoWidth + 6, logoHeight + 6, "F");
+
+  // Place logo (not shrunk)
+  doc.addImage(logoBase64, "PNG", logoX, logoY, logoWidth, logoHeight);
+  // --------------------------------------------------
+
+  // Reset text color
+  doc.setTextColor(0, 0, 0);
+
+  // Employee Details
+  let y = 65;
+  doc.setFillColor(230, 230, 230);
+  doc.rect(10, y, 190, 7, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("EMPLOYEE INFORMATION", 15, y + 5);
+
+  y += 12;
+  doc.setFontSize(9);
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Employee Name:", 15, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(String(employee.full_name), 55, y);
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Employee ID:", 110, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(String(employee.employee_id), 145, y);
+
+  y += 6;
+  doc.setFont("helvetica", "bold");
+  doc.text("Designation:", 15, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(String(employee.designation), 55, y);
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Department:", 110, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(String(deptName), 145, y);
+
+  y += 6;
+  doc.setFont("helvetica", "bold");
+  doc.text("Email:", 15, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(String(employee.email), 55, y);
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Mobile:", 110, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(String(employee.mobile), 145, y);
+
+  // Attendance Summary
+  y += 12;
+  doc.setFillColor(230, 230, 230);
+  doc.rect(10, y, 190, 7, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("ATTENDANCE DETAILS", 15, y + 5);
+
+  y += 12;
+  doc.setFontSize(9);
+
+  const attData = [
+    [
+      "Working Days in Period:",
+      String(employee.total_working_days),
+      "Present Days:",
+      String(employee.present_days)
+    ],
+    ["Full Days:", String(employee.full_days), "Half Days:", String(employee.half_days)],
+    ["WFH Days:", String(employee.wfh_days), "Absent Days:", String(employee.absent_days)]
+  ];
+
+  attData.forEach(([label1, value1, label2, value2]) => {
+    doc.setFont("helvetica", "bold");
+    doc.text(label1, 15, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(value1, 70, y);
+
+    doc.setFont("helvetica", "bold");
+    doc.text(label2, 110, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(value2, 165, y);
+
+    y += 6;
   });
+
+  // Salary Breakdown
+  y += 8;
+  doc.setFillColor(230, 230, 230);
+  doc.rect(10, y, 190, 7, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("SALARY BREAKDOWN", 15, y + 5);
+
+  y += 12;
+  doc.setFontSize(9);
+
+  const salaryData = [
+    ["Monthly CTC", "Rs. " + formatAmount(employee.ctc)],
+    ["Monthly Working Days", String(employee.monthly_working_days) + " days"],
+    ["Per Day Salary", "Rs. " + formatAmount(employee.per_day_salary)],
+    ["", ""],
+    ["Present Days", String(employee.present_days)],
+    [
+      "Calculation",
+      "Rs. " +
+        formatAmount(employee.per_day_salary) +
+        " x " +
+        String(employee.present_days) +
+        " days"
+    ]
+  ];
+
+  salaryData.forEach(([label, value]) => {
+    if (label) {
+      doc.setFont("helvetica", "bold");
+      doc.text(label, 15, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(value, 110, y);
+    }
+    y += 6;
+  });
+
+  // Net Payable - Highlighted box
+  y += 5;
+  doc.setFillColor(46, 204, 113);
+  doc.rect(10, y - 3, 190, 14, "F");
+  doc.setDrawColor(46, 204, 113);
+  doc.setLineWidth(0.5);
+  doc.rect(10, y - 3, 190, 14);
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("NET PAYABLE AMOUNT:", 15, y + 6);
+  doc.text("Rs. " + formatAmount(employee.net_payable), 195, y + 6, {
+    align: "right"
+  });
+
+  doc.setTextColor(0, 0, 0);
+  y += 20;
+
+  // Bank Details (if available)
+  if (employee.bank_name || employee.bank_account_number) {
+    doc.setFillColor(230, 230, 230);
+    doc.rect(10, y, 190, 7, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("BANK DETAILS", 15, y + 5);
+
+    y += 12;
+    doc.setFontSize(9);
+
+    if (employee.bank_name) {
+      doc.setFont("helvetica", "bold");
+      doc.text("Bank Name:", 15, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(String(employee.bank_name), 55, y);
+      y += 6;
+    }
+
+    if (employee.bank_account_number) {
+      doc.setFont("helvetica", "bold");
+      doc.text("Account Number:", 15, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(String(employee.bank_account_number), 55, y);
+      y += 6;
+    }
+
+    if (employee.ifsc) {
+      doc.setFont("helvetica", "bold");
+      doc.text("IFSC Code:", 15, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(String(employee.ifsc), 55, y);
+      y += 6;
+    }
+
+    if (employee.upi_id) {
+      doc.setFont("helvetica", "bold");
+      doc.text("UPI ID:", 15, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(String(employee.upi_id), 55, y);
+    }
+  }
+
+  // Footer
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(100, 100, 100);
+  doc.text(
+    `Generated on: ${format(new Date(), "dd MMM yyyy, hh:mm a")}`,
+    105,
+    280,
+    { align: "center" }
+  );
+  doc.text(
+    "This is a computer-generated document and does not require a signature",
+    105,
+    286,
+    { align: "center" }
+  );
+
+  // Border
+  doc.setDrawColor(41, 128, 185);
+  doc.setLineWidth(1);
+  doc.rect(5, 5, 200, 287);
+
+  // Save PDF
+  doc.save(
+    `salary_slip_${employee.employee_id}_${startDate}_to_${endDate}.pdf`
+  );
+
+  toast.success(`Salary slip downloaded for ${employee.full_name}`);
 };
 
-
-const logoBase64 = await getBase64ImageFromURL('/logo.png');
-
-// Company Header with border
-doc.setFillColor(41, 128, 185)
-doc.rect(0, 0, 210, 50, 'F') // increased height to fit logo
-
-// Company Header with border
-doc.setFillColor(41, 128, 185)
-doc.rect(0, 0, 210, 50, 'F') // Header background
-
-// Header Text on the left
-doc.setTextColor(255, 255, 255)
-doc.setFontSize(26)
-doc.setFont('helvetica', 'bold')
-doc.text('TruckMitr Pvt. Ltd', 8, 25) // Left aligned
-doc.setFontSize(11)
-doc.setFont('helvetica', 'normal')
-doc.text('SALARY SLIP', 8, 32)
-doc.text(`For the period: ${format(new Date(startDate), 'dd MMM yyyy')} to ${format(new Date(endDate), 'dd MMM yyyy')}`, 8, 40)
-
-// Add logo on right with circular white background
-const logoSize = 20
-const padding = 15
-const logoX = 200 - logoSize - padding + 10
-const logoY = 20
-
-// Draw white circular background
-doc.setFillColor(255, 255, 255)
-doc.circle(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2 + 2, 'F')
-
-// Add logo image inside the circle
-doc.addImage(logoBase64, 'PNG', logoX, logoY, logoSize, logoSize)
-
-// Reset text color
-doc.setTextColor(0, 0, 0)
-
-// Employee Details - Two columns
-let y = 65
-doc.setFillColor(230, 230, 230)
-doc.rect(10, y, 190, 7, 'F')
-doc.setFont('helvetica', 'bold')
-doc.setFontSize(11)
-doc.text('EMPLOYEE INFORMATION', 15, y + 5)
-
-y += 12
-doc.setFontSize(9)
-doc.setFont('helvetica', 'bold')
-
-// Left column
-doc.text('Employee Name:', 15, y)
-doc.setFont('helvetica', 'normal')
-doc.text(String(employee.full_name), 55, y)
-
-// Right column
-doc.setFont('helvetica', 'bold')
-doc.text('Employee ID:', 110, y)
-doc.setFont('helvetica', 'normal')
-doc.text(String(employee.employee_id), 145, y)
-
-y += 6
-doc.setFont('helvetica', 'bold')
-doc.text('Designation:', 15, y)
-doc.setFont('helvetica', 'normal')
-doc.text(String(employee.designation), 55, y)
-
-doc.setFont('helvetica', 'bold')
-doc.text('Department:', 110, y)
-doc.setFont('helvetica', 'normal')
-doc.text(String(deptName), 145, y)
-
-y += 6
-doc.setFont('helvetica', 'bold')
-doc.text('Email:', 15, y)
-doc.setFont('helvetica', 'normal')
-doc.text(String(employee.email), 55, y)
-
-doc.setFont('helvetica', 'bold')
-doc.text('Mobile:', 110, y)
-doc.setFont('helvetica', 'normal')
-doc.text(String(employee.mobile), 145, y)
-
-// Attendance Summary
-y += 12
-doc.setFillColor(230, 230, 230)
-doc.rect(10, y, 190, 7, 'F')
-doc.setFont('helvetica', 'bold')
-doc.setFontSize(11)
-doc.text('ATTENDANCE DETAILS', 15, y + 5)
-
-y += 12
-doc.setFontSize(9)
-
-const attData = [
-['Working Days in Period:', String(employee.total_working_days), 'Present Days:', String(employee.present_days)],
-['Full Days:', String(employee.full_days), 'Half Days:', String(employee.half_days)],
-['WFH Days:', String(employee.wfh_days), 'Absent Days:', String(employee.absent_days)]
-]
-
-attData.forEach(([label1, value1, label2, value2]) => {
-doc.setFont('helvetica', 'bold')
-doc.text(label1, 15, y)
-doc.setFont('helvetica', 'normal')
-doc.text(value1, 70, y)
-
-doc.setFont('helvetica', 'bold')
-doc.text(label2, 110, y)
-doc.setFont('helvetica', 'normal')
-doc.text(value2, 165, y)
-y += 6
-
-})
-
-// Salary Breakdown
-y += 8
-doc.setFillColor(230, 230, 230)
-doc.rect(10, y, 190, 7, 'F')
-doc.setFont('helvetica', 'bold')
-doc.setFontSize(11)
-doc.text('SALARY BREAKDOWN', 15, y + 5)
-
-y += 12
-doc.setFontSize(9)
-
-const salaryData = [
-['Monthly CTC', 'Rs. ' + formatAmount(employee.ctc)],
-['Monthly Working Days', String(employee.monthly_working_days) + ' days'],
-['Per Day Salary', 'Rs. ' + formatAmount(employee.per_day_salary)],
-['', ''],
-['Present Days', String(employee.present_days)],
-['Calculation', 'Rs. ' + formatAmount(employee.per_day_salary) + ' x ' + String(employee.present_days) + ' days']
-]
-
-salaryData.forEach(([label, value]) => {
-if (label) {
-doc.setFont('helvetica', 'bold')
-doc.text(label, 15, y)
-doc.setFont('helvetica', 'normal')
-doc.text(value, 110, y)
-}
-y += 6
-})
-
-// Net Payable - Highlighted box
-y += 5
-doc.setFillColor(46, 204, 113)
-doc.rect(10, y - 3, 190, 14, 'F')
-doc.setDrawColor(46, 204, 113)
-doc.setLineWidth(0.5)
-doc.rect(10, y - 3, 190, 14)
-
-doc.setTextColor(255, 255, 255)
-doc.setFont('helvetica', 'bold')
-doc.setFontSize(14)
-doc.text('NET PAYABLE AMOUNT:', 15, y + 6)
-doc.text('Rs. ' + formatAmount(employee.net_payable), 195, y + 6, { align: 'right' })
-
-doc.setTextColor(0, 0, 0)
-y += 20
-
-// Bank Details (if available)
-if (employee.bank_name || employee.bank_account_number) {
-doc.setFillColor(230, 230, 230)
-doc.rect(10, y, 190, 7, 'F')
-doc.setFont('helvetica', 'bold')
-doc.setFontSize(11)
-doc.text('BANK DETAILS', 15, y + 5)
-
-y += 12
-doc.setFontSize(9)
-
-if (employee.bank_name) {
-  doc.setFont('helvetica', 'bold')
-  doc.text('Bank Name:', 15, y)
-  doc.setFont('helvetica', 'normal')
-  doc.text(String(employee.bank_name), 55, y)
-  y += 6
-}
-
-if (employee.bank_account_number) {
-  doc.setFont('helvetica', 'bold')
-  doc.text('Account Number:', 15, y)
-  doc.setFont('helvetica', 'normal')
-  doc.text(String(employee.bank_account_number), 55, y)
-  y += 6
-}
-
-if (employee.ifsc) {
-  doc.setFont('helvetica', 'bold')
-  doc.text('IFSC Code:', 15, y)
-  doc.setFont('helvetica', 'normal')
-  doc.text(String(employee.ifsc), 55, y)
-  y += 6
-}
-
-if (employee.upi_id) {
-  doc.setFont('helvetica', 'bold')
-  doc.text('UPI ID:', 15, y)
-  doc.setFont('helvetica', 'normal')
-  doc.text(String(employee.upi_id), 55, y)
-}
-
-
-}
-
-// Footer
-doc.setFontSize(8)
-doc.setFont('helvetica', 'italic')
-doc.setTextColor(100, 100, 100)
-doc.text(`Generated on: ${format(new Date(), 'dd MMM yyyy, hh:mm a')}`, 105, 280, { align: 'center' })
-doc.text('This is a computer-generated document and does not require a signature', 105, 286, { align: 'center' })
-
-// Border
-doc.setDrawColor(41, 128, 185)
-doc.setLineWidth(1)
-doc.rect(5, 5, 200, 287)
-
-// Save PDF
-doc.save(`salary_slip_${employee.employee_id}_${startDate}_to_${endDate}.pdf`)
-
-toast.success(`Salary slip downloaded for ${employee.full_name}`)
-}
 
 
   const formatCurrency = (amount) => {
