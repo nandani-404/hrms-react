@@ -98,6 +98,7 @@ const Attendance = () => {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: 'user', width: 1280, height: 720 } 
       })
+      console.log(stream);
       streamRef.current = stream
       if (videoRef.current) {
         videoRef.current.srcObject = stream
@@ -117,22 +118,51 @@ const Attendance = () => {
     setCapturedImage(null)
   }
 
-  const capturePhoto = () => {
-    const video = videoRef.current
-    const canvas = canvasRef.current
-    
-    if (video && canvas) {
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(video, 0, 0)
-      
-      canvas.toBlob((blob) => {
-        setCapturedImage(blob)
-        stopCamera()
-      }, 'image/jpeg', 0.8)
-    }
+const capturePhoto = () => {
+  const video = videoRef.current
+  const canvas = canvasRef.current
+
+  if (!video || !canvas) {
+    toast.error('Camera not ready.')
+    return
   }
+
+  // Check if video stream is active
+  if (!streamRef.current || streamRef.current.getTracks().length === 0) {
+    toast.error('Camera not active. Please try again.')
+    return
+  }
+
+  // Check if video has loaded
+  if (video.readyState < video.HAVE_CURRENT_DATA || video.videoWidth === 0) {
+    toast.error('Camera not loaded yet. Please wait a moment.')
+    return
+  }
+
+  canvas.width = video.videoWidth
+  canvas.height = video.videoHeight
+
+  const ctx = canvas.getContext('2d')
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+  canvas.toBlob((blob) => {
+    if (!blob) {
+      toast.error('Failed to capture image.')
+      return
+    }
+
+    console.log('Image blob created:', blob)
+    setCapturedImage(blob)
+    
+    // Stop camera stream but keep modal open
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop())
+      streamRef.current = null
+    }
+    
+    toast.success('Selfie captured! Click Submit to check in.')
+  }, 'image/jpeg', 0.8)
+}
 
   const submitAttendance = async () => {
     // For check-in, selfie is required
@@ -143,25 +173,36 @@ const Attendance = () => {
 
     try {
       if (isCheckingIn) {
+        console.log('Starting check-in...', { emp_id: user.emp_id, hasImage: !!capturedImage })
+        
         const formData = new FormData()
         formData.append('employee_id', user.emp_id)
         formData.append('selfie', capturedImage, 'selfie.jpg')
         
-        await checkInMutation.mutateAsync(formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        })
+        console.log('FormData created, calling mutation...')
+        const result = await checkInMutation.mutateAsync(formData)
+        console.log('Check-in result:', result)
+        
         toast.success('Checked in successfully!')
+        setCapturedImage(null)
+        setShowCamera(false)
+        refetchStatus()
       } else {
         // For check-out, no selfie needed
-        await checkOutMutation.mutateAsync({ employee_id: user.emp_id })
+        console.log('Starting check-out...', { emp_id: user.emp_id })
+        
+        const result = await checkOutMutation.mutateAsync({ employee_id: user.emp_id })
+        console.log('Check-out result:', result)
+        
         toast.success('Checked out successfully!')
+        setCapturedImage(null)
+        setShowCamera(false)
+        refetchStatus()
       }
-      
-      setCapturedImage(null)
-      setShowCamera(false)
-      refetchStatus()
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to submit attendance')
+      console.error('Attendance submission error:', error)
+      console.error('Error response:', error.response)
+      toast.error(error.response?.data?.message || error.message || 'Failed to submit attendance')
     }
   }
 
@@ -510,7 +551,21 @@ setIsExporting(false)
                       {checkInMutation.isPending || checkOutMutation.isPending ? 'Submitting...' : 'Submit'}
                     </button>
                     <button
-                      onClick={() => setCapturedImage(null)}
+                      onClick={async () => {
+                        setCapturedImage(null)
+                        // Restart camera for retake
+                        try {
+                          const stream = await navigator.mediaDevices.getUserMedia({ 
+                            video: { facingMode: 'user', width: 1280, height: 720 } 
+                          })
+                          streamRef.current = stream
+                          if (videoRef.current) {
+                            videoRef.current.srcObject = stream
+                          }
+                        } catch (error) {
+                          toast.error('Camera access denied')
+                        }
+                      }}
                       className="px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
                     >
                       Retake
