@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import { queryClient } from './lib/queryClient'
 import Layout from './components/Layout'
 import Login from './pages/Login'
@@ -17,6 +17,13 @@ import Payroll from './pages/Payroll'
 import Reports from './pages/Reports'
 import ProtectedRoute from './components/ProtectedRoute'
 
+// Component to handle role-based redirect
+const RoleBasedRedirect = () => {
+  const { user } = useAuth()
+  const isHROrAdmin = user?.role === 'hr' || user?.role === 'admin'
+  return <Navigate to={isHROrAdmin ? '/dashboard' : '/my-attendance'} replace />
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -26,7 +33,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route index element={<RoleBasedRedirect />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="employees" element={<Employees />} />
               <Route path="attendance" element={<Attendance />} />

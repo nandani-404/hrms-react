@@ -20,8 +20,15 @@ const Login = () => {
     setLoading(true)
 
     try {
-      await login(email, password)
-      navigate('/my-attendance')
+      const response = await login(email, password)
+      
+      // Redirect based on user role
+      const userRole = response.user?.role
+      if (userRole === 'admin' || userRole === 'hr') {
+        navigate('/dashboard')
+      } else {
+        navigate('/my-attendance')
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed')
     } finally {
