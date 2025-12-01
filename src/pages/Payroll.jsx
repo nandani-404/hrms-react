@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, Download, DollarSign, Users, TrendingUp, Eye, X, IndianRupee } from 'lucide-react'
+import { Calendar, Download, Users, TrendingUp, Eye, X, IndianRupee } from 'lucide-react'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { usePayroll, useEmployeePayroll } from '../hooks/usePayroll'
 import { useDepartments } from '../hooks/useEmployees'

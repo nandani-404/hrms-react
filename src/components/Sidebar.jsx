@@ -4,25 +4,25 @@ import {
   LayoutDashboard, 
   Users, 
   Clock, 
-  DollarSign, 
   FileText, 
   Home,
   Calendar,
   Headphones,
   X,
-  ClipboardCheck
+  ClipboardCheck,
+  IndianRupeeIcon
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const allNavItems = [
-  // { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['all'] },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['all'] },
   { to: '/my-attendance', icon: ClipboardCheck, label: 'My Attendance', roles: ['all'] },
   { to: '/attendance', icon: Clock, label: 'Attendance', roles: ['all'] },
   { to: '/employees', icon: Users, label: 'Employees', roles: ['hr', 'admin'] },
   { to: '/wfh-requests', icon: Home, label: 'WFH Requests', roles: ['all'] },
   { to: '/leave-requests', icon: Calendar, label: 'Leave Requests', roles: ['all'] },
   // { to: '/helpdesk', icon: Headphones, label: 'Helpdesk', roles: ['hr', 'admin'] },
-  { to: '/payroll', icon: DollarSign, label: 'Payroll', roles: ['hr', 'admin'] },
+  { to: '/payroll', icon: IndianRupeeIcon, label: 'Payroll', roles: ['hr', 'admin'] },
   // { to: '/reports', icon: FileText, label: 'Reports', roles: ['hr', 'admin'] },
 ]
 
