@@ -121,7 +121,7 @@ const handleDownloadSlip = async (employee) => {
     });
   };
 
-  const logoBase64 = await getBase64ImageFromURL("/logo.png");
+  const logoBase64 = await getBase64ImageFromURL("/hrms/logo.png");
 
   // -------------------------------------
   // 🔥 ADD WATERMARK (center of page)

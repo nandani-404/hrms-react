@@ -76,7 +76,7 @@ const Sidebar = ({ open, setOpen }) => {
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <img src="https://truckmitr.com/public/front/assets/images/logotrick.png" alt="Logo" width={120}/>
+            <img src="/hrms/logo.png" alt="Logo" width={120}/>
           </div>
           <button
             onClick={() => setOpen(false)}
