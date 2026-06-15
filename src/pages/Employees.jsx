@@ -1,10 +1,20 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, Edit, X } from 'lucide-react'
+import { Plus, Search, Edit, X, ToggleLeft, ToggleRight, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useEmployees, useCreateEmployee, useUpdateEmployee, useDepartments, useStates } from '../hooks/useEmployees'
 import { useAuth } from '../context/AuthContext'
 import { getTeamMembers, canManageTeam } from '../utils/teamFilter'
+
+const INACTIVE_REASONS = [
+  'Resigned',
+  'Terminated',
+  'Contract Ended',
+  'Retired',
+  'Absconding',
+  'Long-term Leave',
+  'Others',
+]
 
 const Employees = () => {
   const { user } = useAuth()
@@ -20,15 +30,24 @@ const Employees = () => {
   const canManage = canManageTeam(user)
 
   const [searchTerm, setSearchTerm] = useState('')
+  const [filterStatus, setFilterStatus] = useState('all')
+  const [filterDepartment, setFilterDepartment] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState(null)
   const [activeTab, setActiveTab] = useState('personal')
+  // Deactivation confirm modal state
+  const [showDeactivateModal, setShowDeactivateModal] = useState(false)
+  const [deactivateReasonOption, setDeactivateReasonOption] = useState('')
+  const [deactivateReasonText, setDeactivateReasonText] = useState('')
   const [formData, setFormData] = useState({
     // Personal Info
     full_name: '',
     guardian_name: '',
     dob: '',
     gender: 'Male',
+    workingHours: '',
+    working_hours: '',
+    employement_work_type: '',
     email: '',
     mobile: '',
     password: '',
@@ -47,6 +66,8 @@ const Employees = () => {
     reporting_manager_id: '',
     ctc: '',
     status: 'Pending',
+    is_active: true,
+    inactive_reason: '',
     // Bank Details
     bank_account_name: '',
     bank_name: '',
@@ -118,6 +139,9 @@ const Employees = () => {
       guardian_name: employee.guardian_name || '',
       dob: employee.dob || '',
       gender: employee.gender || 'Male',
+      workingHours: employee.workingHours || employee.working_hours || '',
+      working_hours: employee.workingHours || employee.working_hours || '',
+      employement_work_type: employee.employement_work_type || '',
       email: employee.email || '',
       mobile: employee.mobile || '',
       password: '',
@@ -136,6 +160,8 @@ const Employees = () => {
       reporting_manager_id: employee.reporting_manager_id || '',
       ctc: employee.ctc || '',
       status: employee.status || 'Pending',
+      is_active: employee.is_active !== undefined ? !!employee.is_active : true,
+      inactive_reason: employee.inactive_reason || '',
       // Bank Details
       bank_account_name: employee.bank_account_name || '',
       bank_name: employee.bank_name || '',
@@ -162,6 +188,8 @@ const Employees = () => {
       gratuity: employee.gratuity || '',
       bonus: employee.bonus || ''
     })
+    setDeactivateReasonOption('')
+    setDeactivateReasonText('')
     setActiveTab('personal')
     setShowModal(true)
   }
@@ -170,12 +198,18 @@ const Employees = () => {
     setShowModal(false)
     setEditingEmployee(null)
     setActiveTab('personal')
+    setShowDeactivateModal(false)
+    setDeactivateReasonOption('')
+    setDeactivateReasonText('')
     setFormData({
       // Personal Info
       full_name: '',
       guardian_name: '',
       dob: '',
       gender: 'Male',
+      workingHours: '',
+      working_hours: '',
+      employement_work_type: '',
       email: '',
       mobile: '',
       password: '',
@@ -194,6 +228,8 @@ const Employees = () => {
       reporting_manager_id: '',
       ctc: '',
       status: 'Pending',
+      is_active: true,
+      inactive_reason: '',
       // Bank Details
       bank_account_name: '',
       bank_name: '',
@@ -222,16 +258,54 @@ const Employees = () => {
     })
   }
 
+  // Called when admin clicks Confirm inside the deactivation reason modal
+  const handleConfirmDeactivate = () => {
+    const reason = deactivateReasonOption === 'Others'
+      ? deactivateReasonText.trim()
+      : deactivateReasonOption
+    if (!reason) {
+      toast.error('Please provide an inactive reason.')
+      return
+    }
+    setFormData(prev => ({ ...prev, is_active: false, inactive_reason: reason }))
+    setShowDeactivateModal(false)
+  }
+
+  // Called when the toggle is clicked
+  const handleToggleActive = () => {
+    if (formData.is_active) {
+      // Going inactive — open reason dialog
+      setDeactivateReasonOption('')
+      setDeactivateReasonText('')
+      setShowDeactivateModal(true)
+    } else {
+      // Re-activating — clear reason
+      setFormData(prev => ({ ...prev, is_active: true, inactive_reason: '' }))
+    }
+  }
+
   const getDepartmentName = (deptId) => {
     const dept = departments?.find(d => d.id === parseInt(deptId))
     return dept ? dept.name : deptId
   }
 
-  const filteredEmployees = employees.filter(emp =>
-    emp.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.emp_id?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredEmployees = employees.filter(emp => {
+    const matchesSearch =
+      emp.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.emp_id?.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const empActive = emp.is_active !== undefined ? !!emp.is_active : true
+    const matchesStatus =
+      filterStatus === 'all' ||
+      (filterStatus === 'active' && empActive) ||
+      (filterStatus === 'inactive' && !empActive)
+
+    const empDept = String(emp.department_id || emp.department || '')
+    const matchesDept = !filterDepartment || empDept === filterDepartment
+
+    return matchesSearch && matchesStatus && matchesDept
+  })
 
   if (loading) {
     return (
@@ -267,15 +341,39 @@ const Employees = () => {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100">
         <div className="p-4 border-b border-gray-100">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search employees..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            />
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Search */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search employees..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+            {/* Status Filter */}
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+            {/* Department Filter */}
+            <select
+              value={filterDepartment}
+              onChange={(e) => setFilterDepartment(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+            >
+              <option value="">All Departments</option>
+              {departments.map(dept => (
+                <option key={dept.id} value={String(dept.id)}>{dept.name}</option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -323,13 +421,27 @@ const Employees = () => {
 </td>
 <td className="py-1 text-sm text-gray-900">{employee.reporting_manager}</td>
 <td className="px-6 py-4 text-sm">
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                      employee.status === 'Verified' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {employee.status}
-                    </span>
+                    <div className="flex flex-col gap-1 items-start">
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                        employee.status === 'Verified' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {employee.status}
+                      </span>
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                        (employee.is_active !== undefined ? !!employee.is_active : true)
+                          ? 'bg-blue-100 text-blue-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {(employee.is_active !== undefined ? !!employee.is_active : true) ? 'Active' : 'Inactive'}
+                      </span>
+                      {employee.is_active !== undefined && !employee.is_active && employee.inactive_reason && (
+                        <span className="text-[10px] text-red-500 max-w-[150px] leading-tight" title={employee.inactive_reason}>
+                          Reason: {employee.inactive_reason}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-sm">
                     <div className="flex items-center gap-2">
@@ -537,6 +649,31 @@ const Employees = () => {
                           <option value="Other">Other</option>
                         </select>
                       </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Working Hours</label>
+                        <select
+                          value={formData.workingHours}
+                          onChange={(e) => setFormData({ ...formData, workingHours: e.target.value, working_hours: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        >
+                          <option value="" disabled>Select Working Hours</option>
+                          <option value="09:30-18:00">09:30 AM - 06:00 PM</option>
+                          <option value="09:30-18:30">09:30 AM - 06:30 PM</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Employment Status</label>
+                        <select
+                          value={formData.employement_work_type}
+                          onChange={(e) => setFormData({ ...formData, employement_work_type: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        >
+                          <option value="" disabled>Select Work Type</option>
+                          <option value="Onsite">Onsite</option>
+                          <option value="work-from-home">Work From Home</option>
+                          <option value="hybrid">Hybrid</option>
+                        </select>
+                      </div>
                       {editingEmployee && (
                         <div className="md:col-span-2">
                           <label className="block text-sm font-medium text-gray-700 mb-1">New Password (Leave blank to keep current)</label>
@@ -704,8 +841,127 @@ const Employees = () => {
                           <option value="Rejected">Rejected</option>
                         </select>
                       </div>
+
+                      {/* Active / Inactive Toggle — full width */}
+                      <div className="md:col-span-2">
+                        <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-colors ${
+                          formData.is_active
+                            ? 'bg-green-50 border-green-200'
+                            : 'bg-red-50 border-red-200'
+                        }`}>
+                          <div>
+                            <p className={`text-sm font-semibold ${
+                              formData.is_active ? 'text-green-700' : 'text-red-700'
+                            }`}>
+                              {formData.is_active ? '✅ Employee is Active' : '🔴 Employee is Inactive'}
+                            </p>
+                            {!formData.is_active && formData.inactive_reason && (
+                              <p className="text-xs text-red-500 mt-1">
+                                Reason: {formData.inactive_reason}
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-500 mt-1">
+                              {formData.is_active
+                                ? 'Toggle to deactivate this employee account'
+                                : 'Toggle to reactivate this employee account'}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleToggleActive}
+                            className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none ${
+                              formData.is_active ? 'bg-green-500' : 'bg-gray-300'
+                            }`}
+                          >
+                            <span className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform ${
+                              formData.is_active ? 'translate-x-7' : 'translate-x-1'
+                            }`} />
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   )}
+
+                  {/* Deactivation Reason Modal */}
+                  <AnimatePresence>
+                    {showDeactivateModal && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4"
+                        onClick={() => setShowDeactivateModal(false)}
+                      >
+                        <motion.div
+                          initial={{ scale: 0.9, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0.9, opacity: 0 }}
+                          onClick={e => e.stopPropagation()}
+                          className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6"
+                        >
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                              <AlertTriangle className="w-5 h-5 text-red-600" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900">Deactivate Employee</h3>
+                              <p className="text-sm text-gray-500">Please provide a reason for deactivation</p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-3">
+                            <label className="block text-sm font-medium text-gray-700">Reason *</label>
+                            <div className="grid grid-cols-2 gap-2">
+                              {INACTIVE_REASONS.map(reason => (
+                                <button
+                                  key={reason}
+                                  type="button"
+                                  onClick={() => setDeactivateReasonOption(reason)}
+                                  className={`px-3 py-2 text-sm rounded-lg border-2 text-left transition-colors ${
+                                    deactivateReasonOption === reason
+                                      ? 'border-red-500 bg-red-50 text-red-700 font-medium'
+                                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                                  }`}
+                                >
+                                  {reason}
+                                </button>
+                              ))}
+                            </div>
+
+                            {deactivateReasonOption === 'Others' && (
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Specify reason</label>
+                                <textarea
+                                  value={deactivateReasonText}
+                                  onChange={e => setDeactivateReasonText(e.target.value)}
+                                  rows={3}
+                                  placeholder="Enter custom reason..."
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400 focus:border-transparent text-sm resize-none"
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex gap-3 mt-6">
+                            <button
+                              type="button"
+                              onClick={() => setShowDeactivateModal(false)}
+                              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 text-sm hover:bg-gray-50 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleConfirmDeactivate}
+                              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+                            >
+                              Confirm Deactivate
+                            </button>
+                          </div>
+                        </motion.div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {/* Salary Tab */}
                   {activeTab === 'salary' && editingEmployee && (

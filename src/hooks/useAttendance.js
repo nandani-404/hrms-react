@@ -12,6 +12,27 @@ export const useAttendance = (params = {}) => {
   })
 }
 
+export const useTodayAttendance = (filter = "") => {
+  return useQuery({
+    queryKey: ['today-attendance', filter],
+    queryFn: async () => {
+      const response = await api.get(`/attendance/today${filter ? `?filter=${filter}` : ''}`)
+      return response.data
+    }
+  })
+}
+
+export const useEmployeeMonthlyAttendance = (employeeId, month) => {
+  return useQuery({
+    queryKey: ['employee-monthly-attendance', employeeId, month],
+    queryFn: async () => {
+      const response = await api.get(`/attendance/employee/${employeeId}/monthly?month=${month}`)
+      return response.data
+    },
+    enabled: !!employeeId && !!month
+  })
+}
+
 export const useAttendanceReport = (startDate, endDate) => {
   return useQuery({
     queryKey: ['attendance-report', startDate, endDate],

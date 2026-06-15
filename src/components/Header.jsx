@@ -2,29 +2,52 @@ import { Menu, Bell, User, LogOut } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import NotificationDrawer from './NotificationDrawer'
+import { notificationService } from '../services/notifications'
 
 const Header = ({ onMenuClick }) => {
   const { user, logout } = useAuth()
   const [showProfile, setShowProfile] = useState(false)
-  const [greeting, setGreeting] = useState('')
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [notifications, setNotifications] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await notificationService.getNotifications(1, 20)
+      setNotifications(res?.data?.data || [])
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error)
+    }
+  }
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await notificationService.getUnreadCount()
+      setUnreadCount(res?.unread_count || 0)
+    } catch (error) {
+      console.error("Failed to fetch unread count:", error)
+    }
+  }
 
   useEffect(() => {
-    const updateGreeting = () => {
-      const hour = new Date().getHours()
-      if (hour < 12) {
-        setGreeting('Good Morning')
-      } else if (hour < 17) {
-        setGreeting('Good Afternoon')
-      } else {
-        setGreeting('Good Evening')
-      }
-    }
+    fetchUnreadCount()
+    fetchNotifications()
 
-    updateGreeting()
-    // Update greeting every minute
-    const interval = setInterval(updateGreeting, 60000)
+    // Poll for unread count every 30 seconds
+    const interval = setInterval(() => {
+      fetchUnreadCount()
+    }, 30000)
+
     return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    if (showNotifications) {
+      fetchNotifications()
+      fetchUnreadCount()
+    }
+  }, [showNotifications])
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
@@ -38,23 +61,28 @@ const Header = ({ onMenuClick }) => {
 
         <div className="flex flex-1 lg:flex-none gap-3 items-center">
           <h1 className="text-xl font-semibold text-gray-900 ml-2 lg:ml-0">
-            {greeting}, {user?.name || 'User'}
+            Welcome to TM-Manavsetu
           </h1>
-                          {(user?.role === 'hr' || user?.role === 'admin') && (
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                    user?.role === 'admin' 
-                      ? 'bg-purple-100 text-purple-700' 
-                      : 'bg-blue-100 text-blue-700'
-                  }`}>
-                    {user?.role === 'admin' ? 'ADMIN' : 'HR / Admin'}
-                  </span>
-                )}
+          {(user?.role === 'hr' || user?.role === 'super_admin') && (
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+              user?.role === 'super_admin' 
+                ? 'bg-purple-100 text-purple-700' 
+                : 'bg-blue-100 text-blue-700'
+            }`}>
+              {user?.role === 'super_admin' ? 'CEO' : 'HR'}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2 md:gap-4">
-          <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative">
+          <button 
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative"
+          >
             <Bell className="w-5 h-5 text-gray-600" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+            )}
           </button>
 
           <div className="relative">
@@ -93,8 +121,20 @@ const Header = ({ onMenuClick }) => {
           </div>
         </div>
       </div>
+
+      <NotificationDrawer
+        isOpen={showNotifications}
+        onClose={() => setShowNotifications(false)}
+        notifications={notifications}
+        unreadCount={unreadCount}
+        onRefresh={() => {
+          fetchNotifications()
+          fetchUnreadCount()
+        }}
+      />
     </header>
   )
 }
 
 export default Header
+

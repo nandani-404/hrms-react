@@ -1,29 +1,80 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Users, Clock, Home, TrendingUp, ArrowRight, Calendar, FileText, Briefcase, ChevronLeft, ChevronRight } from 'lucide-react'
-import { format, addMonths, subMonths } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useDashboardStats, useAttendanceGraph, useRecentWfh, useRecentLeaves } from '../hooks/useDashboard'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { 
+  Users, 
+  TrendingUp, 
+  Home, 
+  FileText, 
+  Clock, 
+  Calendar, 
+  ChevronLeft, 
+  ChevronRight, 
+  MessageCircle, 
+  Mail, 
+  UserX,
+  ArrowRight
+} from 'lucide-react'
+import { format, subMonths, addMonths } from 'date-fns'
+import { 
+  useDashboardStats, 
+  useAttendanceGraph, 
+  useRecentWfh, 
+  useRecentLeaves, 
+  useUpcomingBirthdays 
+} from '../hooks/useDashboard'
+import { useEmployees } from '../hooks/useEmployees'
+import { useAttendance } from '../hooks/useAttendance'
+import { useWfhRequests } from '../hooks/useWfhRequests'
+import { useLeaveRequests } from '../hooks/useLeaveRequests'
+import { getTeamMembers } from '../utils/teamFilter'
+import { 
+  ResponsiveContainer, 
+  BarChart, 
+  CartesianGrid, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  Legend, 
+  Bar 
+} from 'recharts'
+import api from '../services/api'
 
-const StatCard = ({ icon: Icon, label, value, trend, color }) => (
+const StatCard = ({ icon: Icon, label, value, trend, color, onClick, secondValue }) => (
   <motion.div
     whileHover={{ y: -4 }}
-    className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100"
+    onClick={onClick}
+    className={`bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100 ${
+      onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''
+    }`}
   >
     <div className="flex items-center justify-between">
-      <div>
+      <div className="flex-1">
         <p className="text-xs md:text-sm text-gray-600 mb-1">{label}</p>
-        <h3 className="text-xl md:text-2xl font-bold text-gray-900">{value}</h3>
-        {trend && (
-          <p className="text-xs md:text-sm text-green-600 mt-2 flex items-center gap-1">
-            <TrendingUp className="w-3 h-3 md:w-4 md:h-4" />
-            {trend}
-          </p>
+        {secondValue !== undefined ? (
+          <div className="flex items-center gap-3">
+            <div>
+              <h3 className="text-xl md:text-2xl font-bold text-green-600">{value}</h3>
+            </div>
+            <div className="text-gray-300">|</div>
+            <div>
+              <h3 className="text-xl md:text-2xl font-bold text-red-600">{secondValue}</h3>
+            </div>
+          </div>
+        ) : (
+          <>
+            <h3 className="text-xl md:text-2xl font-bold text-gray-900">{value}</h3>
+            {trend && (
+              <p className="text-xs md:text-sm text-green-600 mt-2 flex items-center gap-1">
+                <TrendingUp className="w-3 h-3 md:w-4 md:h-4" />
+                {trend}
+              </p>
+            )}
+          </>
         )}
       </div>
-      <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg ${color} flex items-center justify-center`}>
+      <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg ${color} flex items-center justify-center flex-shrink-0`}>
         <Icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
       </div>
     </div>
@@ -33,19 +84,125 @@ const StatCard = ({ icon: Icon, label, value, trend, color }) => (
 const Dashboard = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const isHR = user?.role === 'hr' || user?.role === 'admin'
   
-  // State for selected month
+  // showHRView checks roles or specific reporting managers to display HR elements
+  const showHRView =
+    user?.role === 'hr' ||
+    user?.role === 'super_admin' ||
+    (user?.department === 'IT' && user?.designation === 'CTO') ||
+    (user?.department === 'Telecalling' && user?.designation === 'Head - Telecalling') ||
+    user?.is_reporting_manager === 1
+
   const [selectedMonth, setSelectedMonth] = useState(new Date())
   const selectedMonthStr = format(selectedMonth, 'yyyy-MM')
   
-  // Fetch dashboard data
-  const { data: stats, isLoading: statsLoading } = useDashboardStats()
-  const { data: graphData, isLoading: graphLoading } = useAttendanceGraph(selectedMonthStr)
-  const { data: recentWfh, isLoading: wfhLoading } = useRecentWfh(5)
-  const { data: recentLeaves, isLoading: leavesLoading } = useRecentLeaves(5)
+  const [isProcessingMarkAbsent, setIsProcessingMarkAbsent] = useState(false)
+  const [markAbsentMessage, setMarkAbsentMessage] = useState('')
+  const [birthdayDays, setBirthdayDays] = useState(30)
+  
+  const isCTOOrHead =
+    (user?.department === 'IT' && user?.designation === 'CTO') ||
+    (user?.department === 'Telecalling' && user?.designation === 'Head - Telecalling')
+  const isReportingManager = user?.is_reporting_manager === 1
 
-  // Month navigation handlers
+  let filterParams = {}
+  if (user?.role !== 'super_admin' && user?.role !== 'hr') {
+    if (isReportingManager) {
+      filterParams = { reporting_manager_id: user.emp_id }
+    } else if (isCTOOrHead) {
+      filterParams = { department: user.department }
+    }
+  }
+
+  // Hook calls
+  const { data: stats, isLoading: statsLoading } = useDashboardStats(filterParams)
+  const { data: graphData, isLoading: graphLoading } = useAttendanceGraph(selectedMonthStr, filterParams)
+  const { data: recentWfh, isLoading: wfhLoading } = useRecentWfh(5, filterParams)
+  const { data: recentLeaves, isLoading: leavesLoading } = useRecentLeaves(5, filterParams)
+  const { data: birthdaysData, isLoading: birthdaysLoading } = useUpcomingBirthdays(birthdayDays, 10)
+  
+  const { data: employeesData } = useEmployees()
+  const allEmployees = employeesData || []
+  const teamMembers = getTeamMembers(allEmployees, user)
+  
+  // totalEmployeesCount:
+  const totalEmployeesCount =
+    user?.role !== 'super_admin' && user?.role !== 'hr'
+      ? teamMembers.length
+      : stats?.total_employees || 0
+
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+  
+  const { data: attendanceData } = useAttendance({ date: todayStr })
+  const { data: wfhRequestsData } = useWfhRequests(filterParams)
+  const { data: leaveRequestsData } = useLeaveRequests(filterParams)
+
+  const wfhRequests = Array.isArray(wfhRequestsData) ? wfhRequestsData : wfhRequestsData?.data || []
+  const leaveRequests = Array.isArray(leaveRequestsData) ? leaveRequestsData : leaveRequestsData?.data || []
+  const todayAttendance = Array.isArray(attendanceData) ? attendanceData : attendanceData?.data || []
+
+  // Deduplicate attendance records (latest by ID for employee_id on this date)
+  const latestAttendanceMap = new Map()
+  todayAttendance.forEach(record => {
+    const key = `${record.employee_id}-${record.date}`
+    if (!latestAttendanceMap.has(key) || record.id > latestAttendanceMap.get(key).id) {
+      latestAttendanceMap.set(key, record)
+    }
+  })
+
+  // Filter present today:
+  const presentEmployees = Array.from(latestAttendanceMap.values()).filter(record => 
+    teamMembers.some(member => member.emp_id === record.employee_id) && record.attendance_status === 'present'
+  ) || []
+
+  const presentCount =
+    user?.role !== 'super_admin' && user?.role !== 'hr'
+      ? presentEmployees.length
+      : stats?.present_today || 0
+
+  // Filter WFH today:
+  const wfhTodayCount =
+    user?.role !== 'super_admin' && user?.role !== 'hr'
+      ? wfhRequests.filter(req => 
+          teamMembers.some(member => member.emp_id === req.employee_id) && 
+          req.status === 'Approved' && 
+          req.start_date <= todayStr && 
+          req.end_date >= todayStr
+        ).length
+      : stats?.wfh_today || 0
+
+  // Absent today:
+  const absentCount =
+    user?.role !== 'super_admin' && user?.role !== 'hr'
+      ? totalEmployeesCount - presentEmployees.length - wfhTodayCount
+      : stats?.absent_today || 0
+
+  // Pending requests:
+  const pendingWfhCount = wfhRequests.filter(req => req.status === 'Pending' || req.status === 'pending').length
+  const pendingLeavesCount = leaveRequests.filter(req => req.status === 'Pending' || req.status === 'pending').length
+
+  // Filter recent requests lists if not admin/hr
+  let finalRecentWfh = recentWfh || []
+  let finalRecentLeaves = recentLeaves || []
+  if (user?.role !== 'super_admin' && user?.role !== 'hr') {
+    const teamWfh = wfhRequests
+      .filter(req => teamMembers.some(member => member.emp_id === req.employee_id))
+      .sort((a, b) => b.id - a.id)
+      .slice(0, 5)
+    if (teamWfh.length > 0 || wfhRequests.length > 0) {
+      finalRecentWfh = teamWfh
+    }
+
+    const teamLeaves = leaveRequests
+      .filter(req => teamMembers.some(member => member.emp_id === req.employee_id))
+      .sort((a, b) => b.id - a.id)
+      .slice(0, 5)
+    if (teamLeaves.length > 0 || leaveRequests.length > 0) {
+      finalRecentLeaves = teamLeaves
+    }
+  }
+
+  // Month navigation:
   const handlePrevMonth = () => {
     setSelectedMonth(prev => subMonths(prev, 1))
   }
@@ -58,12 +215,28 @@ const Dashboard = () => {
     setSelectedMonth(new Date())
   }
 
-  // Check if current month is selected
   const isCurrentMonth = format(selectedMonth, 'yyyy-MM') === format(new Date(), 'yyyy-MM')
 
-  const loading = statsLoading
+  // Mark Absent handler
+  const handleMarkAbsent = async () => {
+    setIsProcessingMarkAbsent(true)
+    setMarkAbsentMessage('')
+    try {
+      const { data } = await api.get('/attendance/mark-absent-deadline')
+      if (data.success) {
+        setMarkAbsentMessage(`✓ ${data.message} - ${data.data.total_processed} employees processed`)
+        setTimeout(() => setMarkAbsentMessage(''), 5000)
+      } else {
+        setMarkAbsentMessage('Error marking absent')
+      }
+    } catch {
+      setMarkAbsentMessage('Failed to mark absent')
+    } finally {
+      setIsProcessingMarkAbsent(false)
+    }
+  }
 
-  if (loading) {
+  if (statsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -71,13 +244,14 @@ const Dashboard = () => {
     )
   }
 
-  const getStatusBadge = (status) => {
+  const getStatusBadgeClass = (status) => {
+    if (!status) return 'bg-gray-100 text-gray-700'
     const badges = {
       pending: 'bg-yellow-100 text-yellow-700',
       approved: 'bg-green-100 text-green-700',
       rejected: 'bg-red-100 text-red-700',
     }
-    return badges[status] || 'bg-gray-100 text-gray-700'
+    return badges[status.toLowerCase()] || 'bg-gray-100 text-gray-700'
   }
 
   return (
@@ -85,42 +259,77 @@ const Dashboard = () => {
       <div>
         <h1 className="text-xl md:text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-sm md:text-base text-gray-600 mt-1">
-          Welcome back, {user?.full_name}
+          Centralizing People, Powering Performance.
         </p>
       </div>
 
-      {/* Top Stats Cards */}
-      {isHR && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          <StatCard
-            icon={Users}
-            label="Total Employees"
-            value={stats?.total_employees || 0}
-            color="bg-primary-600"
-          />
-          <StatCard
-            icon={TrendingUp}
-            label="Present Today"
-            value={stats?.present_today || 0}
-            color="bg-green-600"
-          />
-          <StatCard
-            icon={Home}
-            label="WFH Today"
-            value={stats?.wfh_today || 0}
-            color="bg-blue-600"
-          />
-          <StatCard
-            icon={Clock}
-            label="Avg Punch In"
-            value={stats?.avg_punch_in_time || '--:--'}
-            color="bg-orange-600"
-          />
-        </div>
+      {showHRView && (
+        <>
+          {/* Top Stats Cards */}
+          <div className="grid grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+            <StatCard
+              icon={Users}
+              label="Total Employees"
+              value={totalEmployeesCount}
+              color="bg-primary-600"
+              onClick={() => navigate('/employees')}
+            />
+            <StatCard
+              icon={TrendingUp}
+              label="Today’s Attendance"
+              value={presentCount}
+              secondValue={absentCount}
+              color="bg-green-600"
+              onClick={() => navigate('/today-attendance')}
+            />
+            <StatCard
+              icon={Home}
+              label="WFH Request Pending"
+              value={pendingWfhCount}
+              color="bg-blue-600"
+              onClick={() => navigate('/wfh-requests', { state: { filterStatus: 'Pending' } })}
+            />
+            <StatCard
+              icon={FileText}
+              label="Leave Request Pending"
+              value={pendingLeavesCount}
+              color="bg-purple-600"
+              onClick={() => navigate('/leave-requests', { state: { filterStatus: 'Pending' } })}
+            />
+            <StatCard
+              icon={Clock}
+              label="Short Leave Today"
+              value={stats?.short_leave_today || 0}
+              color="bg-orange-600"
+              onClick={() => navigate('/short-leave')}
+            />
+          </div>
+
+          {/* Mark Absent Action Row */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleMarkAbsent}
+              disabled={isProcessingMarkAbsent}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg font-medium transition-colors"
+            >
+              <UserX className="w-4 h-4" />
+              {isProcessingMarkAbsent ? 'Processing...' : 'Mark Absent'}
+            </button>
+            {markAbsentMessage && (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="text-sm text-green-600 font-medium"
+              >
+                {markAbsentMessage}
+              </motion.div>
+            )}
+          </div>
+        </>
       )}
 
       {/* Attendance Bar Graph */}
-      {isHR && (
+      {showHRView && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -139,7 +348,7 @@ const Dashboard = () => {
                 <p className="text-xs text-gray-500">Track employee presence by date</p>
               </div>
             </div>
-            
+
             {/* Month Navigation */}
             <div className="flex items-center gap-2">
               <button
@@ -149,26 +358,24 @@ const Dashboard = () => {
               >
                 <ChevronLeft className="w-5 h-5 text-gray-600" />
               </button>
-              
+
               <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
                 <span className="text-sm font-semibold text-blue-900">
                   {format(selectedMonth, 'MMMM yyyy')}
                 </span>
               </div>
-              
+
               <button
                 onClick={handleNextMonth}
                 disabled={isCurrentMonth}
                 className={`p-2 rounded-lg transition-colors ${
-                  isCurrentMonth 
-                    ? 'opacity-50 cursor-not-allowed' 
-                    : 'hover:bg-gray-100'
+                  isCurrentMonth ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'
                 }`}
                 title="Next Month"
               >
                 <ChevronRight className="w-5 h-5 text-gray-600" />
               </button>
-              
+
               {!isCurrentMonth && (
                 <button
                   onClick={handleCurrentMonth}
@@ -179,7 +386,7 @@ const Dashboard = () => {
               )}
             </div>
           </div>
-          
+
           {graphLoading ? (
             <div className="flex items-center justify-center h-80">
               <div className="text-center">
@@ -190,28 +397,32 @@ const Dashboard = () => {
           ) : graphData && graphData.length > 0 ? (
             <div className="bg-gradient-to-br from-gray-50 to-white p-4 rounded-lg border border-gray-100">
               <ResponsiveContainer width="100%" height={400}>
-                <BarChart 
+                <BarChart
                   data={graphData}
                   margin={{ top: 20, right: 30, left: 10, bottom: 10 }}
                   barCategoryGap="20%"
                 >
                   <defs>
                     <linearGradient id="colorPresent" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.9}/>
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.7}/>
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.9} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.7} />
+                    </linearGradient>
+                    <linearGradient id="colorAbsent" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.9} />
+                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0.7} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                  <XAxis 
+                  <XAxis
                     dataKey="day"
                     type="number"
                     domain={[0.5, graphData.length + 0.5]}
                     ticks={graphData.map(d => d.day)}
-                    label={{ 
-                      value: 'Date of Month', 
-                      position: 'insideBottom', 
-                      offset: 0, 
-                      style: { fontWeight: 600, fill: '#374151', fontSize: 14 } 
+                    label={{
+                      value: 'Date of Month',
+                      position: 'insideBottom',
+                      offset: 0,
+                      style: { fontWeight: 600, fill: '#374151', fontSize: 14 }
                     }}
                     tick={{ fontSize: 11, fill: '#6b7280' }}
                     interval={0}
@@ -219,12 +430,12 @@ const Dashboard = () => {
                     height={50}
                     stroke="#9ca3af"
                   />
-                  <YAxis 
-                    label={{ 
-                      value: 'Employees Present', 
-                      angle: -90, 
-                      position: 'center', 
-                      style: { fontWeight: 600, fill: '#374151', fontSize: 14, textAnchor: 'middle' } 
+                  <YAxis
+                    label={{
+                      value: 'Number of Employees',
+                      angle: -90,
+                      position: 'center',
+                      style: { fontWeight: 600, fill: '#374151', fontSize: 14, textAnchor: 'middle' }
                     }}
                     tick={{ fontSize: 12, fill: '#6b7280' }}
                     allowDecimals={false}
@@ -232,21 +443,27 @@ const Dashboard = () => {
                     stroke="#9ca3af"
                     width={80}
                   />
-                  <Tooltip 
+                  <Tooltip
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         const data = payload[0].payload
                         return (
-                          <div className="bg-white p-4 border-2 border-green-200 rounded-xl shadow-xl">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Calendar className="w-4 h-4 text-green-600" />
+                          <div className="bg-white p-4 border-2 border-gray-200 rounded-xl shadow-xl">
+                            <div className="flex items-center gap-2 mb-3">
+                              <Calendar className="w-4 h-4 text-blue-600" />
                               <p className="text-sm font-semibold text-gray-900">
                                 {format(new Date(data.date), 'EEEE, MMM dd, yyyy')}
                               </p>
                             </div>
-                            <div className="flex items-center justify-between gap-4">
-                              <span className="text-xs text-gray-600">Employees Present:</span>
-                              <span className="text-lg font-bold text-green-600">{payload[0].value}</span>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between gap-4">
+                                <span className="text-xs text-gray-600">Present:</span>
+                                <span className="text-lg font-bold text-green-600">{data.present_count || 0}</span>
+                              </div>
+                              <div className="flex items-center justify-between gap-4">
+                                <span className="text-xs text-gray-600">Absent:</span>
+                                <span className="text-lg font-bold text-red-600">{data.absent_count || 0}</span>
+                              </div>
                             </div>
                           </div>
                         )
@@ -255,37 +472,25 @@ const Dashboard = () => {
                     }}
                     cursor={{ fill: 'rgba(16, 185, 129, 0.1)' }}
                   />
-                  <Bar 
-                    dataKey="present_count" 
+                  <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="square" />
+                  <Bar
+                    dataKey="present_count"
                     fill="url(#colorPresent)"
                     radius={[8, 8, 0, 0]}
                     maxBarSize={35}
                     animationDuration={800}
+                    name="Present"
+                  />
+                  <Bar
+                    dataKey="absent_count"
+                    fill="url(#colorAbsent)"
+                    radius={[8, 8, 0, 0]}
+                    maxBarSize={35}
+                    animationDuration={800}
+                    name="Absent"
                   />
                 </BarChart>
               </ResponsiveContainer>
-              
-              {/* Summary Stats Below Graph */}
-              {/* <div className="grid grid-cols-3 gap-4 mt-6 pt-4 border-t border-gray-200">
-                <div className="text-center">
-                  <p className="text-xs text-gray-600 mb-1">Total Days</p>
-                  <p className="text-lg font-bold text-gray-900">{graphData.length}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xs text-gray-600 mb-1">Days with Data</p>
-                  <p className="text-lg font-bold text-green-600">
-                    {graphData.filter(d => d.present_count > 0).length}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xs text-gray-600 mb-1">Avg Present/Day</p>
-                  <p className="text-lg font-bold text-blue-600">
-                    {graphData.length > 0 
-                      ? Math.round(graphData.reduce((sum, d) => sum + d.present_count, 0) / graphData.filter(d => d.present_count > 0).length || 0)
-                      : 0}
-                  </p>
-                </div>
-              </div> */}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-80 text-gray-500">
@@ -297,10 +502,136 @@ const Dashboard = () => {
         </motion.div>
       )}
 
-      {/* Recent Requests Cards */}
-      {isHR && (
+      {/* Upcoming Birthdays widget */}
+      {showHRView && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-blue-600" />
+              <div>
+                <h2 className="text-base md:text-lg font-semibold text-gray-900">
+                  Upcoming Birthdays
+                </h2>
+                {birthdaysData?.period && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Next {birthdayDays} days ({format(new Date(birthdaysData.period.start_date), 'dd MMM yyyy')} - {format(new Date(birthdaysData.period.end_date), 'dd MMM yyyy')})
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setBirthdayDays(1)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${birthdayDays === 1 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                title="Birthdays today only"
+              >
+                Today
+              </button>
+              <button
+                onClick={() => setBirthdayDays(30)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${birthdayDays === 30 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                title="Next month"
+              >
+                30 Days
+              </button>
+              <button
+                onClick={() => setBirthdayDays(60)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${birthdayDays === 60 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                title="Next 2 months"
+              >
+                60 Days
+              </button>
+              <button
+                onClick={() => setBirthdayDays(90)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${birthdayDays === 90 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                title="Next quarter"
+              >
+                90 Days
+              </button>
+            </div>
+          </div>
+
+          {birthdaysLoading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+            </div>
+          ) : birthdaysData?.birthdays && birthdaysData.birthdays.length > 0 ? (
+            <div className="space-y-3">
+              {birthdaysData.birthdays.map(birthday => (
+                <div
+                  key={birthday.emp_id}
+                  className="p-4 bg-gradient-to-r from-blue-50 to-blue-50 rounded-lg border border-blue-100 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={birthday.photo_path ? `https://truckmitr.com/storage/app/public/${birthday.photo_path}` : 'https://via.placeholder.com/48'}
+                      alt={birthday.full_name}
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{birthday.full_name}</p>
+                          <p className="text-xs text-gray-600">{birthday.designation}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={`https://wa.me/${birthday.mobile.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Send WhatsApp message"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                          </a>
+                          <a
+                            href={`mailto:${birthday.email}?subject=Happy%20Birthday!&body=Hi%20${birthday.full_name},%0D%0A%0D%0AWishing%20you%20a%20very%20happy%20birthday!%20🎉%0D%0A%0D%0ABest%20wishes`}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Send email"
+                          >
+                            <Mail className="w-4 h-4" />
+                          </a>
+                          <div className="text-right ml-2">
+                            <p className="text-sm font-bold text-blue-600">
+                              {format(new Date(birthday.birthday_date), 'MMM dd')}
+                            </p>
+                            <p className="text-xs text-gray-500">{birthday.birthday_day}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-gray-600">
+                          Turning <span className="font-semibold text-gray-900">{birthday.age_on_birthday}</span>
+                        </span>
+                        <span className="text-xs font-medium text-blue-600 bg-white px-2 py-1 rounded">
+                          {birthday.days_until_birthday} days away
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-32 text-gray-500">
+              <Calendar className="w-12 h-12 text-gray-300 mb-2" />
+              <p className="text-sm font-medium">No upcoming birthdays</p>
+              <p className="text-xs text-gray-400 mt-1">in the next {birthdayDays} days</p>
+            </div>
+          )}
+        </motion.div>
+      )}
+
+      {/* Recent WFH and Leaves requests */}
+      {showHRView && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-          {/* Recent WFH Requests */}
+          {/* Recent WFH */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -309,7 +640,7 @@ const Dashboard = () => {
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Briefcase className="w-5 h-5 text-blue-600" />
+                <Home className="w-5 h-5 text-blue-600" />
                 <h2 className="text-base md:text-lg font-semibold text-gray-900">
                   Recent WFH Requests
                 </h2>
@@ -327,9 +658,9 @@ const Dashboard = () => {
               <div className="flex items-center justify-center h-32">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
               </div>
-            ) : recentWfh && recentWfh.length > 0 ? (
+            ) : finalRecentWfh && finalRecentWfh.length > 0 ? (
               <div className="space-y-3">
-                {recentWfh.map((request) => (
+                {finalRecentWfh.map(request => (
                   <div
                     key={request.id}
                     className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
@@ -339,7 +670,7 @@ const Dashboard = () => {
                       <span className="text-sm font-medium text-gray-900">
                         {request.employee?.full_name || 'Unknown'}
                       </span>
-                      <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadge(request.status)}`}>
+                      <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadgeClass(request.status)}`}>
                         {request.status}
                       </span>
                     </div>
@@ -356,7 +687,7 @@ const Dashboard = () => {
             )}
           </motion.div>
 
-          {/* Recent Leave Requests */}
+          {/* Recent Leave */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -383,9 +714,9 @@ const Dashboard = () => {
               <div className="flex items-center justify-center h-32">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
               </div>
-            ) : recentLeaves && recentLeaves.length > 0 ? (
+            ) : finalRecentLeaves && finalRecentLeaves.length > 0 ? (
               <div className="space-y-3">
-                {recentLeaves.map((request) => (
+                {finalRecentLeaves.map(request => (
                   <div
                     key={request.id}
                     className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
@@ -395,7 +726,7 @@ const Dashboard = () => {
                       <span className="text-sm font-medium text-gray-900">
                         {request.employee?.full_name || 'Unknown'}
                       </span>
-                      <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadge(request.status)}`}>
+                      <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadgeClass(request.status)}`}>
                         {request.status}
                       </span>
                     </div>

@@ -1,42 +1,27 @@
 import { useQuery } from '@tanstack/react-query'
-import axios from 'axios'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-})
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
+import api from '../services/api'
 
 // Get dashboard statistics
-export const useDashboardStats = () => {
+export const useDashboardStats = (params = {}) => {
   return useQuery({
-    queryKey: ['dashboard-stats'],
+    queryKey: ['dashboard-stats', params],
     queryFn: async () => {
-      const { data } = await api.get('/dashboard/stats')
-      console.log(data);
-      return data.data
+      const { data } = await api.get('/dashboard/stats', { params })
+      return data.data || data
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 }
 
 // Get attendance graph data
-export const useAttendanceGraph = (month) => {
+export const useAttendanceGraph = (month, params = {}) => {
   return useQuery({
-    queryKey: ['attendance-graph', month],
+    queryKey: ['attendance-graph', month, params],
     queryFn: async () => {
       const { data } = await api.get('/dashboard/attendance-graph', {
-        params: { month }
+        params: { month, ...params }
       })
-      return data.data
+      return data.data || data
     },
     enabled: !!month,
     staleTime: 1000 * 60 * 5,
@@ -44,29 +29,43 @@ export const useAttendanceGraph = (month) => {
 }
 
 // Get recent WFH requests
-export const useRecentWfh = (limit = 5) => {
+export const useRecentWfh = (limit = 5, params = {}) => {
   return useQuery({
-    queryKey: ['recent-wfh', limit],
+    queryKey: ['recent-wfh', limit, params],
     queryFn: async () => {
       const { data } = await api.get('/dashboard/recent-wfh', {
-        params: { limit }
+        params: { limit, ...params }
       })
-      return data.data
+      return data.data || data
     },
     staleTime: 1000 * 60 * 2,
   })
 }
 
 // Get recent leave requests
-export const useRecentLeaves = (limit = 5) => {
+export const useRecentLeaves = (limit = 5, params = {}) => {
   return useQuery({
-    queryKey: ['recent-leaves', limit],
+    queryKey: ['recent-leaves', limit, params],
     queryFn: async () => {
       const { data } = await api.get('/dashboard/recent-leaves', {
-        params: { limit }
+        params: { limit, ...params }
       })
-      return data.data
+      return data.data || data
     },
     staleTime: 1000 * 60 * 2,
+  })
+}
+
+// Get upcoming birthdays
+export const useUpcomingBirthdays = (days = 30, limit = 5) => {
+  return useQuery({
+    queryKey: ['upcoming-birthdays', days, limit],
+    queryFn: async () => {
+      const { data } = await api.get('/dashboard/upcoming-birthdays', {
+        params: { days, limit }
+      })
+      return data.data || data
+    },
+    staleTime: 1000 * 60 * 5,
   })
 }

@@ -224,6 +224,13 @@ const handleDownloadSlip = async (employee) => {
   doc.setFont("helvetica", "normal");
   doc.text(String(employee.mobile), 145, y);
 
+  y += 6;
+  doc.setFont("helvetica", "bold");
+  doc.text("Date of Joining:", 15, y);
+  doc.setFont("helvetica", "normal");
+  const formattedDoj = employee.doj ? format(new Date(employee.doj), 'dd MMM yyyy') : "N/A";
+  doc.text(formattedDoj, 55, y);
+
   // Attendance Summary
   y += 12;
   doc.setFillColor(230, 230, 230);
@@ -242,8 +249,8 @@ const handleDownloadSlip = async (employee) => {
       "Present Days:",
       String(employee.present_days)
     ],
-    ["Full Days:", String(employee.full_days), "Half Days:", String(employee.half_days)],
-    ["WFH Days:", String(employee.wfh_days), "Absent Days:", String(employee.absent_days)]
+    ["Full Days:", String(employee.full_days), "Absent Days:", String(employee.absent_days)],
+    ["WFH Days:", String(employee.wfh_days), "", ""]
   ];
 
   attData.forEach(([label1, value1, label2, value2]) => {
@@ -252,10 +259,12 @@ const handleDownloadSlip = async (employee) => {
     doc.setFont("helvetica", "normal");
     doc.text(value1, 70, y);
 
-    doc.setFont("helvetica", "bold");
-    doc.text(label2, 110, y);
-    doc.setFont("helvetica", "normal");
-    doc.text(value2, 165, y);
+    if (label2) {
+      doc.setFont("helvetica", "bold");
+      doc.text(label2, 110, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(value2, 165, y);
+    }
 
     y += 6;
   });
@@ -272,19 +281,16 @@ const handleDownloadSlip = async (employee) => {
   doc.setFontSize(9);
 
   const salaryData = [
-    ["Monthly CTC", "Rs. " + formatAmount(employee.ctc)],
-    ["Monthly Working Days", String(employee.monthly_working_days) + " days"],
-    ["Per Day Salary", "Rs. " + formatAmount(employee.per_day_salary)],
+    ["Basic Salary", "Rs. " + formatAmount(employee.basic_salary || 0)],
+    ["HRA", "Rs. " + formatAmount(employee.hra || 0)],
+    ["Conveyance Allowance", "Rs. " + formatAmount(employee.conveyance_allowance || 0)],
+    ["Special Allowance", "Rs. " + formatAmount(employee.special_allowance || 0)],
+    ["Bonus", "N/A"],
     ["", ""],
-    ["Present Days", String(employee.present_days)],
-    [
-      "Calculation",
-      "Rs. " +
-        formatAmount(employee.per_day_salary) +
-        " x " +
-        String(employee.present_days) +
-        " days"
-    ]
+    ["Gross Salary", "Rs. " + formatAmount(employee.gross_salary || employee.ctc || 0)],
+    ["Total Deductions", "Rs. " + formatAmount(Math.max(0, (employee.gross_salary || employee.ctc || 0) - (employee.net_payable || 0)))],
+    ["", ""],
+    ["Net Take Home (for period)", "Rs. " + formatAmount(employee.net_payable || 0)]
   ];
 
   salaryData.forEach(([label, value]) => {
@@ -581,10 +587,12 @@ const handleDownloadSlip = async (employee) => {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Monthly CTC</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Present</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Full</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Half</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Onsite</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">WFH</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Absent</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Extra working</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Week Off</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Holiday</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Earned</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
@@ -592,7 +600,7 @@ const handleDownloadSlip = async (employee) => {
                 <tbody className="divide-y divide-gray-100">
                   {payrollData.employees?.length === 0 ? (
                     <tr>
-                      <td colSpan="10" className="px-6 py-8 text-center text-gray-500">
+                      <td colSpan="11" className="px-6 py-8 text-center text-gray-500">
                         No payroll data found for the selected period
                       </td>
                     </tr>
@@ -614,7 +622,7 @@ const handleDownloadSlip = async (employee) => {
                         <td className="px-4 py-4">
                           <div className="text-sm text-gray-900">{formatCurrency(employee.ctc)}</div>
                           <div className="text-xs text-gray-500">Monthly CTC</div>
-                          <div className="text-xs text-gray-500">₹{parseFloat(employee.per_day_salary).toFixed(0)}/day</div>
+                          <div className="text-xs text-gray-500">₹{parseFloat(employee.per_day_salary).toFixed(2)}/day</div>
                         </td>
                         <td className="px-4 py-4 text-center">
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
@@ -625,9 +633,6 @@ const handleDownloadSlip = async (employee) => {
                           {employee.full_days}
                         </td>
                         <td className="px-4 py-4 text-center text-sm text-gray-600">
-                          {employee.half_days}
-                        </td>
-                        <td className="px-4 py-4 text-center text-sm text-gray-600">
                           {employee.wfh_days}
                         </td>
                         <td className="px-4 py-4 text-center">
@@ -635,9 +640,24 @@ const handleDownloadSlip = async (employee) => {
                             {employee.absent_days}
                           </span>
                         </td>
+                        <td className="px-4 py-4 text-center">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                            {employee.extra_working_days}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                            {employee.week_off_days}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                            {employee.holiday_days}
+                          </span>
+                        </td>
                         <td className="px-4 py-4">
                           <div className="text-sm font-semibold text-green-600">{formatCurrency(employee.net_payable)}</div>
-                          <div className="text-xs text-gray-500">for {employee.present_days} days</div>
+                          <div className="text-xs text-gray-500">for {employee.total_working_days} days</div>
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex items-center justify-center gap-1">
