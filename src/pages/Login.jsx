@@ -46,7 +46,7 @@ const Login = () => {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-100 mb-4">
-              <img src="https://truckmitr.com/public/front/assets/images/logotrick.png" alt="" width={50}/>
+              <img src="/hrms/logo.png" alt="" width={60} className='rounded-full'/>
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
             <p className="text-gray-600 mt-2">Sign in to access Dashboard</p>
