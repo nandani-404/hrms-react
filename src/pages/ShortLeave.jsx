@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Check, X, Edit, Eye, Trash2, Download } from 'lucide-react'
 import FileUpload from '../components/FileUpload'
@@ -14,6 +14,7 @@ import {
 } from '../hooks/useShortLeave'
 import { useEmployees } from '../hooks/useEmployees'
 import { useAuth } from '../context/AuthContext'
+import { useLocation } from 'react-router-dom'
 import { format, parseISO, isPast, isToday } from 'date-fns'
 import toast from 'react-hot-toast'
 import { getTeamMembers, getTeamMemberIds, canManageTeam } from '../utils/teamFilter'
@@ -22,6 +23,10 @@ const ShortLeave = () => {
   const { user } = useAuth()
   const isHR = user?.role === 'hr' || user?.role === 'super_admin'
   const canManage = canManageTeam(user)
+  
+  const location = useLocation()
+  const highlightId = location.state?.highlightId
+  const rowRefs = useRef({})
   
   const [showModal, setShowModal] = useState(false)
   const [showRejectModal, setShowRejectModal] = useState(false)
@@ -84,6 +89,14 @@ const ShortLeave = () => {
       return true
     })
   }, [teamRequests, isHR])
+
+  useEffect(() => {
+    if (highlightId && rowRefs.current[highlightId]) {
+      setTimeout(() => {
+        rowRefs.current[highlightId]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 500)
+    }
+  }, [highlightId, filteredRequests])
 
   const createMutation = useCreateShortLeave()
   const updateMutation = useUpdateShortLeave()
@@ -340,9 +353,10 @@ const ShortLeave = () => {
                 filteredRequests.map((request, idx) => (
                   <motion.tr
                     key={request.id}
+                    ref={(el) => (rowRefs.current[request.id] = el)}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="hover:bg-gray-50 transition-colors"
+                    className={`transition-colors ${highlightId === request.id ? 'bg-blue-50 border-l-4 border-blue-500' : 'hover:bg-gray-50'}`}
                   >
                     <td className="px-6 py-4 text-sm text-gray-900">{idx + 1}</td>
                     {canManage && (

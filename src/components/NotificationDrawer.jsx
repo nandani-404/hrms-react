@@ -69,23 +69,35 @@ const NotificationDrawer = ({ isOpen, onClose, notifications, unreadCount, onRef
 
   const getNavigationData = (notification) => {
     const type = notification.type
-    if (type.includes("leave")) {
+    if (type.includes("short_leave")) {
+      return {
+        path: "/short-leave",
+        state: { filterStatus: "Pending", highlightId: notification.data?.short_leave_id || notification.data?.request_id }
+      }
+    } else if (type.includes("leave")) {
       return {
         path: "/leave-requests",
-        state: { filterStatus: "Pending" }
+        state: { filterStatus: "Pending", highlightId: notification.data?.leave_request_id || notification.data?.request_id }
       }
     } else if (type.includes("wfh")) {
       return {
         path: "/wfh-requests",
-        state: { filterStatus: "Pending" }
+        state: { filterStatus: "Pending", highlightId: notification.data?.wfh_request_id || notification.data?.request_id }
       }
     }
     return null
   }
 
-  const handleItemClick = (notification) => {
+  const handleItemClick = async (notification) => {
     const navData = getNavigationData(notification)
     if (navData) {
+      if (!notification.read_at) {
+        try {
+          await handleMarkAsRead(notification.id)
+        } catch (error) {
+          console.error("Failed to mark as read on click:", error)
+        }
+      }
       navigate(navData.path, { state: navData.state })
       onClose()
     }

@@ -1,11 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../services/api'
 
-export const useEmployees = () => {
+export const useEmployees = (filters = {}) => {
   return useQuery({
-    queryKey: ['employees'],
+    queryKey: ['employees', filters],
     queryFn: async () => {
-      const response = await api.get('/employees')
+      const params = new URLSearchParams()
+      if (filters.search) params.append('search', filters.search)
+      if (filters.status && filters.status !== 'all') params.append('status', filters.status)
+      if (filters.department) params.append('department', filters.department)
+
+      const queryString = params.toString()
+      const url = `/employees${queryString ? `?${queryString}` : ''}`
+      const response = await api.get(url)
       return response.data.employees || []
     },
   })

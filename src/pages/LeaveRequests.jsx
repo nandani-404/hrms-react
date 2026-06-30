@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Check, X, Eye, Trash2, Edit, XCircle, Download } from 'lucide-react'
 import FileUpload from '../components/FileUpload'
@@ -35,6 +36,10 @@ const LeaveRequests = () => {
   const { user } = useAuth()
   const isHR = user?.role === 'hr' || user?.role === 'admin'
   const canManage = canManageTeam(user)
+
+  const location = useLocation()
+  const highlightId = location.state?.highlightId
+  const rowRefs = useRef({})
   
   const [showModal, setShowModal] = useState(false)
   const [showRejectModal, setShowRejectModal] = useState(false)
@@ -101,6 +106,14 @@ const LeaveRequests = () => {
       )
     : allRequests
   const employees = teamMembers
+
+  useEffect(() => {
+    if (highlightId && rowRefs.current[highlightId]) {
+      setTimeout(() => {
+        rowRefs.current[highlightId]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 500)
+    }
+  }, [highlightId, requests])
   const balances = balanceResponse?.data || []
   
   const createMutation = useCreateLeaveRequest()
@@ -473,9 +486,10 @@ const LeaveRequests = () => {
                 requests.map((request) => (
                   <motion.tr
                     key={request.id}
+                    ref={(el) => (rowRefs.current[request.id] = el)}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="hover:bg-gray-50 transition-colors"
+                    className={`transition-colors ${highlightId === request.id ? 'bg-blue-50 border-l-4 border-blue-500' : 'hover:bg-gray-50'}`}
                   >
                     {canManage && (
                       <td className="px-4 md:px-6 py-4">

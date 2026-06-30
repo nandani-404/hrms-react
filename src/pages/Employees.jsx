@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, Edit, X, ToggleLeft, ToggleRight, AlertTriangle } from 'lucide-react'
+import { Plus, Search, Edit, X, ToggleLeft, ToggleRight, AlertTriangle, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useEmployees, useCreateEmployee, useUpdateEmployee, useDepartments, useStates } from '../hooks/useEmployees'
 import { useAuth } from '../context/AuthContext'
@@ -18,7 +18,15 @@ const INACTIVE_REASONS = [
 
 const Employees = () => {
   const { user } = useAuth()
-  const { data: employeesData = [], isLoading: loading } = useEmployees()
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterStatus, setFilterStatus] = useState('all')
+  const [filterDepartment, setFilterDepartment] = useState('')
+
+  const { data: employeesData = [], isLoading: loading } = useEmployees({
+    search: searchTerm,
+    status: filterStatus,
+    department: filterDepartment
+  })
   const { data: departments = [] } = useDepartments()
   const { data: states = [] } = useStates()
   const createEmployee = useCreateEmployee()
@@ -28,10 +36,6 @@ const Employees = () => {
   const allEmployees = employeesData?.data || employeesData || []
   const employees = getTeamMembers(allEmployees, user)
   const canManage = canManageTeam(user)
-
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterStatus, setFilterStatus] = useState('all')
-  const [filterDepartment, setFilterDepartment] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState(null)
   const [activeTab, setActiveTab] = useState('personal')
@@ -289,23 +293,46 @@ const Employees = () => {
     return dept ? dept.name : deptId
   }
 
-  const filteredEmployees = employees.filter(emp => {
-    const matchesSearch =
-      emp.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.emp_id?.toLowerCase().includes(searchTerm.toLowerCase())
+  const handleExport = async () => {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+    const url = new URL(`${baseUrl}/employees/export`);
+    
+    if (filterStatus !== 'all') {
+      url.searchParams.append('status', filterStatus);
+    }
+    if (filterDepartment) {
+      url.searchParams.append('department', filterDepartment);
+    }
 
-    const empActive = emp.is_active !== undefined ? !!emp.is_active : true
-    const matchesStatus =
-      filterStatus === 'all' ||
-      (filterStatus === 'active' && empActive) ||
-      (filterStatus === 'inactive' && !empActive)
+    const toastId = toast.loading('Exporting data...');
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(url.toString(), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) throw new Error('Export failed');
+      
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `employees_export_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
+      
+      toast.success('Export successful!', { id: toastId });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export data', { id: toastId });
+    }
+  };
 
-    const empDept = String(emp.department_id || emp.department || '')
-    const matchesDept = !filterDepartment || empDept === filterDepartment
-
-    return matchesSearch && matchesStatus && matchesDept
-  })
+  const filteredEmployees = employees;
 
   if (loading) {
     return (
@@ -328,15 +355,26 @@ const Employees = () => {
             {employees.length} {user?.is_reporting_manager === 1 && user?.role !== 'admin' && user?.role !== 'hr' ? 'team members' : 'total employees'}
           </p>
         </div>
-        {(user?.role === 'admin' || user?.role === 'hr') && (
-          <button
-            onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            Add Employee
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {(user?.role === 'admin' || user?.role === 'hr') && (
+            <button
+              onClick={handleExport}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              <Download className="w-5 h-5" />
+              Export
+            </button>
+          )}
+          {(user?.role === 'admin' || user?.role === 'hr') && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              Add Employee
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100">
