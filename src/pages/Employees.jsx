@@ -19,7 +19,7 @@ const INACTIVE_REASONS = [
 const Employees = () => {
   const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterStatus, setFilterStatus] = useState('all')
+  const [filterStatus, setFilterStatus] = useState('active')
   const [filterDepartment, setFilterDepartment] = useState('')
 
   const { data: employeesData = [], isLoading: loading } = useEmployees({
@@ -397,7 +397,7 @@ const Employees = () => {
               onChange={(e) => setFilterStatus(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
             >
-              <option value="all">All Status</option>
+              {/* <option value="all">All Status</option> */}
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
