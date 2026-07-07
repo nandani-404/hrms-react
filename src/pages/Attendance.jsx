@@ -292,11 +292,11 @@ const handleDetailedExport = async () => {
     )
 
     // Create download link
-    const blob = new Blob([response.data], { type: 'text/csv' })
+    const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `detailed_attendance_${exportMonth}_dept_${exportDepartment || 'all'}.csv`
+    link.download = `detailed_attendance_${exportMonth}_dept_${exportDepartment || 'all'}.xlsx`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -315,8 +315,8 @@ setIsExporting(false)
     const file = e.target.files[0]
     if (file) {
       // Validate file type
-      if (!file.name.endsWith('.csv')) {
-        toast.error('Please select a CSV file')
+      if (!file.name.match(/\.(csv|xls|xlsx)$/i)) {
+        toast.error('Please select a CSV or Excel file')
         return
       }
       // Validate file size (10MB max)
@@ -334,7 +334,7 @@ setIsExporting(false)
       return
     }
     if (!uploadFile) {
-      toast.error('Please select a CSV file')
+      toast.error('Please select a CSV or Excel file')
       return
     }
 
@@ -836,7 +836,7 @@ setIsExporting(false)
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept=".csv"
+                      accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
                       onChange={handleFileSelect}
                       className="hidden"
                       id="csv-upload"

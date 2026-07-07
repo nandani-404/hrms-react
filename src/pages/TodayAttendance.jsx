@@ -116,17 +116,15 @@ const ExportMonthlyAttendance = ({ departments = [], departmentsLoading = false,
 
 // Sub-component: Upload Revised Attendance
 const UploadRevisedAttendance = ({ title, description }) => {
-  const [month, setMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [file, setFile] = useState(null);
-  const [replaceExisting, setReplaceExisting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
-      if (!selectedFile.name.endsWith(".csv")) {
-        toast.error("Please select a CSV file");
+      if (!selectedFile.name.match(/\.(csv|xls|xlsx)$/i)) {
+        toast.error("Please select a CSV or Excel file");
         return;
       }
       if (selectedFile.size > 10 * 1024 * 1024) {
@@ -138,22 +136,16 @@ const UploadRevisedAttendance = ({ title, description }) => {
   };
 
   const handleUpload = async () => {
-    if (!month) {
-      toast.error("Please select a month");
-      return;
-    }
     if (!file) {
-      toast.error("Please select a CSV file");
+      toast.error("Please select a CSV or Excel file");
       return;
     }
     setIsUploading(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("month", month);
       formData.append("uploaded_by", "HR");
       formData.append("approved_by", "HR");
-      formData.append("replace_existing", replaceExisting ? "1" : "0");
 
       const response = await api.post("/approved-attendance/upload-csv", formData, {
         headers: {
@@ -167,7 +159,6 @@ const UploadRevisedAttendance = ({ title, description }) => {
           duration: 5000
         });
         setFile(null);
-        setReplaceExisting(false);
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
@@ -192,23 +183,14 @@ const UploadRevisedAttendance = ({ title, description }) => {
         </div>
       </div>
       <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="flex flex-col gap-4 mb-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Month</label>
-            <input
-              type="month"
-              value={month}
-              onChange={e => setMonth(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">CSV File</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Upload Excel/CSV File</label>
             <div className="flex gap-2">
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".csv"
+                accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
                 onChange={handleFileChange}
                 className="hidden"
                 id="csv-upload-input"
@@ -219,7 +201,7 @@ const UploadRevisedAttendance = ({ title, description }) => {
               >
                 <FileText className="w-4 h-4 text-gray-500" />
                 <span className="text-sm text-gray-600 truncate">
-                  {file ? file.name : "Choose CSV file"}
+                  {file ? file.name : "Choose file"}
                 </span>
               </label>
               {file && (
@@ -228,7 +210,8 @@ const UploadRevisedAttendance = ({ title, description }) => {
                     setFile(null);
                     if (fileInputRef.current) fileInputRef.current.value = "";
                   }}
-                  className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors"
+                  className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+                  title="Remove file"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -236,16 +219,7 @@ const UploadRevisedAttendance = ({ title, description }) => {
             </div>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={replaceExisting}
-              onChange={e => setReplaceExisting(e.target.checked)}
-              className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-            />
-            <span className="text-sm text-gray-700 font-medium">Replace existing records for this month</span>
-          </label>
+        <div className="flex justify-end pt-2 border-t border-green-200">
           <button
             onClick={handleUpload}
             disabled={isUploading || !file}
@@ -255,10 +229,9 @@ const UploadRevisedAttendance = ({ title, description }) => {
             {isUploading ? "Uploading..." : "Upload CSV"}
           </button>
         </div>
-        <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
-          <p className="text-xs text-gray-600 leading-relaxed">
-            <strong>Note:</strong> The CSV file should match the exported format with columns: 
-            Employee ID, Employee Name, Department, Email, Mobile, Designation, Date, Punch In, Punch Out, Work Hours, Status, Shift, Manual Entry, Remark.
+        <div className="mt-3 p-3 bg-white rounded-lg border border-green-100">
+          <p className="text-xs text-gray-600">
+            <strong>Note:</strong> Upload the revised Detailed Report Excel file. The system will automatically detect the dates and update the attendance records for those dates.
           </p>
         </div>
       </div>
