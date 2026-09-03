@@ -1,13 +1,52 @@
 import { useState, useRef, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { Calendar, Clock, CheckCircle, XCircle, User, TrendingUp, LogIn, LogOut, MapPin, Camera } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Calendar,
+  Clock,
+  CheckCircle2,
+  Circle,
+  TrendingUp,
+  LogIn,
+  LogOut,
+  MapPin,
+  Camera,
+  X,
+  RefreshCcw,
+  Hourglass,
+  Sparkles,
+} from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { useMyAttendance } from '../hooks/useMyAttendance'
 import { useAuth } from '../context/AuthContext'
 import { formatWorkHours, formatWorkHoursShort } from '../utils/timeFormat'
 import { useCheckIn, useCheckOut, useEmployeeTodayStatus } from '../hooks/useAttendance'
 import toast from 'react-hot-toast'
+import { Avatar, Card, CardBody, CardHeader, Empty, PageHeader, cx } from '../components/ui'
 
+/* ------------------------------------------------------------------ *
+ * Status vocabulary — one definition drives chips, pills and legend.
+ * ------------------------------------------------------------------ */
+const statusStyles = {
+  present: { label: 'Present', chip: 'bg-green-50 text-green-800 ring-green-200', dot: 'bg-green-600', pill: 'bg-green-50 text-green-700 ring-green-200' },
+  absent: { label: 'Absent', chip: 'bg-red-50 text-red-800 ring-red-200', dot: 'bg-red-600', pill: 'bg-red-50 text-red-700 ring-red-200' },
+  wfh: { label: 'WFH', chip: 'bg-purple-50 text-purple-800 ring-purple-200', dot: 'bg-purple-600', pill: 'bg-purple-50 text-purple-700 ring-purple-200' },
+  on_leave: { label: 'On Leave', chip: 'bg-primary-50 text-primary-800 ring-primary-200', dot: 'bg-primary-600', pill: 'bg-primary-50 text-primary-700 ring-primary-200' },
+  week_off: { label: 'Week Off', chip: 'bg-gray-100 text-gray-700 ring-gray-200', dot: 'bg-gray-400', pill: 'bg-gray-100 text-gray-700 ring-gray-200' },
+}
+
+/** Unknown statuses still render sensibly rather than being mislabelled. */
+const styleFor = (status) => {
+  if (statusStyles[status]) return statusStyles[status]
+  const label =
+    String(status || '')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase()) || 'Unknown'
+  return { ...statusStyles.week_off, label }
+}
+
+/* ------------------------------------------------------------------ *
+ * Punch card — the one thing every employee opens this page to do.
+ * ------------------------------------------------------------------ */
 const PunchInOutCard = () => {
   const { user } = useAuth()
   const [showModal, setShowModal] = useState(false)
@@ -17,6 +56,7 @@ const PunchInOutCard = () => {
   const [locationData, setLocationData] = useState(null)
   const [locationError, setLocationError] = useState(null)
   const [isLocationLoading, setIsLocationLoading] = useState(false)
+  const [now, setNow] = useState(new Date())
 
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
@@ -28,6 +68,12 @@ const PunchInOutCard = () => {
 
   const isCheckedIn = todayStatus?.checked_in || false
   const isCheckedOut = todayStatus?.checked_out || false
+
+  // A quietly ticking clock makes the card feel live rather than static.
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   // Validations
   const validateImage = (file) => {
@@ -88,21 +134,12 @@ const PunchInOutCard = () => {
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
           )
           const data = await response.json()
-          address =
-            data.address?.road ||
-            data.address?.city ||
-            data.display_name ||
-            null
+          address = data.address?.road || data.address?.city || data.display_name || null
         } catch (error) {
           console.log('Could not fetch address:', error)
         }
 
-        setLocationData({
-          latitude,
-          longitude,
-          accuracy,
-          address
-        })
+        setLocationData({ latitude, longitude, accuracy, address })
         setIsLocationLoading(false)
         toast.success('Location captured successfully')
       },
@@ -112,11 +149,7 @@ const PunchInOutCard = () => {
         setLocationError(errMsg)
         toast.error(errMsg)
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     )
   }
 
@@ -126,20 +159,16 @@ const PunchInOutCard = () => {
     setRemark('')
     setLocationData(null)
     setLocationError(null)
-    
+
     // Trigger location capture immediately when punching in/out
     await captureLocation()
-    
+
     setShowModal(true)
     setSelfieFile(null)
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'user',
-          width: 1280,
-          height: 720
-        }
+        video: { facingMode: 'user', width: 1280, height: 720 },
       })
       mediaStreamRef.current = stream
       if (videoRef.current) {
@@ -184,7 +213,7 @@ const PunchInOutCard = () => {
     canvas.height = video.videoHeight
     const context = canvas.getContext('2d')
     context.drawImage(video, 0, 0, canvas.width, canvas.height)
-    
+
     canvas.toBlob(
       (blob) => {
         if (!blob) {
@@ -241,7 +270,7 @@ const PunchInOutCard = () => {
         const data = {
           employee_id: user.emp_id,
           latitude: locationData.latitude,
-          longitude: locationData.longitude
+          longitude: locationData.longitude,
         }
         if (locationData.accuracy) data.location_accuracy = locationData.accuracy
         if (locationData.address) data.address = locationData.address
@@ -269,239 +298,327 @@ const PunchInOutCard = () => {
     }
   }, [])
 
+  const checkinTime = todayStatus?.attendance?.checkin_time
+  const checkoutTime = todayStatus?.attendance?.checkout_time
+  const isSubmitting = checkInMutation.isPending || checkOutMutation.isPending
+
   return (
     <>
-      <div className="bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl shadow-sm border border-primary-200 p-4 md:p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary-600 flex items-center justify-center">
-            <User className="w-5 h-5 md:w-6 md:h-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-base md:text-lg font-semibold text-gray-900">{user?.full_name}</h2>
-            <p className="text-xs md:text-sm text-gray-600">{user?.emp_id}</p>
-          </div>
-        </div>
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-primary-900/40 shadow-lift"
+        style={{ backgroundImage: 'linear-gradient(140deg, #142338 0%, #0C1626 60%, #10203A 100%)' }}
+      >
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brass-400/60 to-transparent" />
+        <span className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-brass-400/10 blur-3xl" />
 
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className={`p-3 md:p-4 rounded-lg ${isCheckedIn ? 'bg-green-100' : 'bg-gray-100'}`}>
-            <div className="flex items-center gap-2 mb-1">
-              {isCheckedIn ? (
-                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
-              ) : (
-                <XCircle className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />
-              )}
-              <span className="text-xs md:text-sm font-medium text-gray-700">Punch In</span>
-            </div>
-            <p className="text-xs md:text-sm text-gray-600">
-              {todayStatus?.attendance?.checkin_time
-                ? format(new Date(todayStatus.attendance.checkin_time), 'hh:mm a')
-                : 'Not marked'}
-            </p>
-          </div>
-
-          <div className={`p-3 md:p-4 rounded-lg ${isCheckedOut ? 'bg-green-100' : 'bg-gray-100'}`}>
-            <div className="flex items-center gap-2 mb-1">
-              {isCheckedOut ? (
-                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
-              ) : (
-                <XCircle className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />
-              )}
-              <span className="text-xs md:text-sm font-medium text-gray-700">Punch Out</span>
-            </div>
-            <p className="text-xs md:text-sm text-gray-600">
-              {todayStatus?.attendance?.checkout_time
-                ? format(new Date(todayStatus.attendance.checkout_time), 'hh:mm a')
-                : 'Not marked'}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex gap-3">
-          {!isCheckedIn && (
-            <button
-              onClick={() => startCamera(true)}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-            >
-              <LogIn className="w-4 h-4 md:w-5 md:h-5" />
-              <span className="text-sm md:text-base">Punch In</span>
-            </button>
-          )}
-
-          {isCheckedIn && !isCheckedOut && (
-            <button
-              onClick={() => startCamera(false)}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
-            >
-              <LogOut className="w-4 h-4 md:w-5 md:h-5" />
-              <span className="text-sm md:text-base">Punch Out</span>
-            </button>
-          )}
-
-          {isCheckedIn && isCheckedOut && (
-            <div className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-200 text-gray-600 rounded-lg font-medium">
-              <Clock className="w-4 h-4 md:w-5 md:h-5" />
-              <span className="text-sm md:text-base">Attendance Marked</span>
-            </div>
-          )}
-        </div>
-
-        {todayStatus?.attendance?.work_hours && (
-          <div className="mt-3 p-3 bg-white rounded-lg">
-            <p className="text-xs md:text-sm text-gray-600">
-              Work Hours:{' '}
-              <span className="font-semibold text-gray-900">
-                {formatWorkHours(todayStatus.attendance.work_hours)}
-              </span>
-            </p>
-          </div>
-        )}
-      </div>
-
-      {showModal && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-4 border-b border-gray-200 sticky top-0 bg-white z-10">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {isPunchIn ? 'Punch In' : 'Punch Out'}
-              </h3>
-            </div>
-
-            <div className="p-4 space-y-4">
-              {/* Location capture box */}
-              <div className={`p-3 rounded-lg border ${locationData ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                <div className="flex items-start gap-2">
-                  <MapPin className={`w-5 h-5 mt-0.5 flex-shrink-0 ${locationData ? 'text-green-600' : 'text-red-600'}`} />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">
-                      {locationData ? 'Location Captured' : 'Location Required'}
-                    </p>
-                    {locationData ? (
-                      <div className="text-xs text-gray-600 mt-1">
-                        Lat: {locationData.latitude.toFixed(4)}, Lon: {locationData.longitude.toFixed(4)}
-                        {locationData.address && (
-                          <div className="mt-1 font-medium">{locationData.address}</div>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-600 mt-1">
-                        {locationError || 'Getting your location...'}
-                      </p>
-                    )}
-                  </div>
-                </div>
+        <div className="relative flex flex-1 flex-col p-5 md:p-6">
+          {/* Identity + live clock */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <Avatar name={user?.full_name} src={user?.photo_path} size="md" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-white">{user?.full_name}</p>
+                <p className="truncate text-xs text-primary-100/50">{user?.emp_id}</p>
               </div>
+            </div>
 
-              {/* Camera for Punch In */}
-              {isPunchIn && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Selfie <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative bg-black aspect-video rounded-lg overflow-hidden">
-                    {selfieFile ? (
-                      <img
-                        src={URL.createObjectURL(selfieFile)}
-                        alt="Captured"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    <canvas ref={canvasRef} className="hidden" />
-                  </div>
+            <div className="text-right">
+              <p className="numeral text-2xl font-semibold leading-none text-white">
+                {format(now, 'hh:mm')}
+                <span className="ml-1 text-sm font-medium text-brass-300/80">{format(now, 'a')}</span>
+              </p>
+              <p className="mt-1.5 text-[10px] uppercase tracking-eyebrow text-primary-100/45">
+                {format(now, 'EEE, dd MMM')}
+              </p>
+            </div>
+          </div>
+
+          {/* Punch timeline */}
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            {[
+              { label: 'Punch In', time: checkinTime, done: isCheckedIn, icon: LogIn },
+              { label: 'Punch Out', time: checkoutTime, done: isCheckedOut, icon: LogOut },
+            ].map((slot) => (
+              <div
+                key={slot.label}
+                className={cx(
+                  'rounded-xl border p-3.5 transition-colors',
+                  slot.done ? 'border-green-400/25 bg-green-500/10' : 'border-white/[0.08] bg-white/[0.04]'
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  {slot.done ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-400" />
+                  ) : (
+                    <Circle className="h-4 w-4 text-primary-100/35" />
+                  )}
+                  <span className="text-xs font-medium text-primary-100/70">{slot.label}</span>
                 </div>
-              )}
-
-              {/* Remarks */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Remark <span className="text-gray-500">(Optional)</span>
-                </label>
-                <textarea
-                  value={remark}
-                  onChange={(e) => setRemark(e.target.value.slice(0, 500))}
-                  placeholder="Add any remarks (max 500 characters)"
-                  rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-sm"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  {remark.length}/500 characters
+                <p className={cx('numeral mt-1.5 text-lg font-semibold', slot.done ? 'text-white' : 'text-primary-100/35')}>
+                  {slot.time ? format(new Date(slot.time), 'hh:mm a') : 'Not marked'}
                 </p>
               </div>
-            </div>
+            ))}
+          </div>
 
-            <div className="p-4 border-t border-gray-200 flex gap-3 sticky bottom-0 bg-white">
-              {isPunchIn && !selfieFile ? (
-                <>
-                  <button
-                    onClick={captureSelfie}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
-                  >
-                    <Camera className="w-5 h-5" />
-                    Capture
-                  </button>
-                  <button
-                    onClick={stopCamera}
-                    className="px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={checkInMutation.isPending || checkOutMutation.isPending || !locationData}
-                    className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {checkInMutation.isPending || checkOutMutation.isPending ? 'Submitting...' : 'Submit'}
-                  </button>
-                  {isPunchIn && selfieFile && (
-                    <button
-                      onClick={async () => {
-                        setSelfieFile(null)
-                        try {
-                          const stream = await navigator.mediaDevices.getUserMedia({
-                            video: {
-                              facingMode: 'user',
-                              width: 1280,
-                              height: 720
-                            }
-                          })
-                          mediaStreamRef.current = stream
-                          if (videoRef.current) {
-                            videoRef.current.srcObject = stream
-                          }
-                        } catch {
-                          toast.error('Camera access denied')
-                        }
-                      }}
-                      className="px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
-                    >
-                      Retake
-                    </button>
-                  )}
-                  <button
-                    onClick={stopCamera}
-                    className="px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </>
-              )}
+          {/* Work hours so far, against a standard nine-hour day */}
+          {todayStatus?.attendance?.work_hours ? (
+            <div className="mt-3 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-3">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-xs text-primary-100/60">
+                  <Hourglass className="h-3.5 w-3.5 text-brass-300/80" />
+                  Hours logged today
+                </span>
+                <span className="numeral text-sm font-semibold text-brass-200">
+                  {formatWorkHours(todayStatus.attendance.work_hours)}
+                </span>
+              </div>
+              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.08]">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-brass-400 to-brass-200 transition-all duration-700"
+                  style={{ width: `${Math.min(100, (Number(todayStatus.attendance.work_hours) / 9) * 100)}%` }}
+                />
+              </div>
+              <p className="mt-1.5 text-[10px] uppercase tracking-eyebrow text-primary-100/35">
+                of a 9 hour day
+              </p>
             </div>
+          ) : (
+            <div className="mt-3 rounded-xl border border-dashed border-white/[0.10] px-3.5 py-3 text-center text-xs text-primary-100/40">
+              {isCheckedIn ? 'Hours will appear once you punch out' : 'Punch in to start your day'}
+            </div>
+          )}
+
+          {/* Action */}
+          <div className="mt-auto pt-5">
+            {!isCheckedIn && (
+              <button
+                onClick={() => startCamera(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-green-500 to-green-700 px-4 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:from-green-600 hover:to-green-800"
+              >
+                <LogIn className="h-4 w-4" />
+                Punch In
+              </button>
+            )}
+
+            {isCheckedIn && !isCheckedOut && (
+              <button
+                onClick={() => startCamera(false)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-red-500 to-red-700 px-4 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:from-red-600 hover:to-red-800"
+              >
+                <LogOut className="h-4 w-4" />
+                Punch Out
+              </button>
+            )}
+
+            {isCheckedIn && isCheckedOut && (
+              <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-brass-400/25 bg-brass-400/10 px-4 py-3.5 text-sm font-semibold text-brass-200">
+                <Sparkles className="h-4 w-4" />
+                Attendance marked for today
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </motion.div>
+
+      {/* ---------------- Punch modal ---------------- */}
+      <AnimatePresence>
+        {showModal && (
+          <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-primary-950/70 backdrop-blur-sm"
+              onClick={stopCamera}
+            />
+
+            <motion.div
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              className="relative flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl"
+            >
+              <span className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-brass-400 via-brass-300/50 to-transparent" />
+
+              <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+                <div>
+                  <p className="eyebrow">Attendance</p>
+                  <h3 className="font-display text-lg font-semibold text-gray-900">
+                    {isPunchIn ? 'Punch In' : 'Punch Out'}
+                  </h3>
+                </div>
+                <button
+                  onClick={stopCamera}
+                  className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                  aria-label="Close"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+                {/* Location */}
+                <div
+                  className={cx(
+                    'rounded-xl border px-3.5 py-3',
+                    locationData ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'
+                  )}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <MapPin className={cx('mt-0.5 h-[18px] w-[18px] shrink-0', locationData ? 'text-green-700' : 'text-yellow-700')} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-gray-900">
+                          {locationData ? 'Location captured' : 'Location required'}
+                        </p>
+                        {isLocationLoading && (
+                          <span className="h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                        )}
+                      </div>
+                      {locationData ? (
+                        <div className="mt-1 text-xs text-gray-600">
+                          <span className="tabular-nums">
+                            {locationData.latitude.toFixed(4)}, {locationData.longitude.toFixed(4)}
+                          </span>
+                          {locationData.address && <div className="mt-0.5 font-medium text-gray-800">{locationData.address}</div>}
+                        </div>
+                      ) : (
+                        <div className="mt-1 flex items-center gap-2">
+                          <p className="text-xs text-gray-600">{locationError || 'Getting your location…'}</p>
+                          {locationError && (
+                            <button
+                              onClick={captureLocation}
+                              className="inline-flex items-center gap-1 text-xs font-medium text-primary-700 hover:text-primary-800"
+                            >
+                              <RefreshCcw className="h-3 w-3" />
+                              Retry
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Camera */}
+                {isPunchIn && (
+                  <div>
+                    <label className="field-label">
+                      Selfie <span className="text-red-600">*</span>
+                    </label>
+                    <div className="relative aspect-video overflow-hidden rounded-xl bg-primary-950 ring-1 ring-inset ring-gray-900/10">
+                      {selfieFile ? (
+                        <img src={URL.createObjectURL(selfieFile)} alt="Captured" className="h-full w-full object-cover" />
+                      ) : (
+                        <video ref={videoRef} autoPlay playsInline className="h-full w-full object-cover" />
+                      )}
+                      <canvas ref={canvasRef} className="hidden" />
+
+                      {/* Framing marks */}
+                      {!selfieFile && (
+                        <>
+                          <span className="pointer-events-none absolute left-3 top-3 h-5 w-5 border-l-2 border-t-2 border-brass-300/70" />
+                          <span className="pointer-events-none absolute right-3 top-3 h-5 w-5 border-r-2 border-t-2 border-brass-300/70" />
+                          <span className="pointer-events-none absolute bottom-3 left-3 h-5 w-5 border-b-2 border-l-2 border-brass-300/70" />
+                          <span className="pointer-events-none absolute bottom-3 right-3 h-5 w-5 border-b-2 border-r-2 border-brass-300/70" />
+                        </>
+                      )}
+                      {selfieFile && (
+                        <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-green-600/90 px-2.5 py-1 text-[11px] font-medium text-white">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Captured
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Remark */}
+                <div>
+                  <label className="field-label">
+                    Remark <span className="font-normal text-gray-400">(optional)</span>
+                  </label>
+                  <textarea
+                    value={remark}
+                    onChange={(e) => setRemark(e.target.value.slice(0, 500))}
+                    placeholder="Anything worth noting about today?"
+                    rows={2}
+                    className="field-input resize-none"
+                  />
+                  <p className="mt-1 text-right text-[11px] tabular-nums text-gray-400">{remark.length}/500</p>
+                </div>
+              </div>
+
+              <div className="flex gap-2.5 border-t border-gray-200 bg-gray-50/70 px-5 py-4">
+                {isPunchIn && !selfieFile ? (
+                  <>
+                    <button onClick={captureSelfie} className="btn-primary flex-1 py-3">
+                      <Camera className="h-4 w-4" />
+                      Capture
+                    </button>
+                    <button onClick={stopCamera} className="btn-secondary py-3">
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleSubmit}
+                      disabled={isSubmitting || !locationData}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gradient-to-b from-green-500 to-green-700 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:from-green-600 hover:to-green-800 disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                          Submitting…
+                        </>
+                      ) : (
+                        'Submit'
+                      )}
+                    </button>
+                    {isPunchIn && selfieFile && (
+                      <button
+                        onClick={async () => {
+                          setSelfieFile(null)
+                          try {
+                            const stream = await navigator.mediaDevices.getUserMedia({
+                              video: { facingMode: 'user', width: 1280, height: 720 },
+                            })
+                            mediaStreamRef.current = stream
+                            if (videoRef.current) {
+                              videoRef.current.srcObject = stream
+                            }
+                          } catch {
+                            toast.error('Camera access denied')
+                          }
+                        }}
+                        className="btn-secondary py-3"
+                      >
+                        Retake
+                      </button>
+                    )}
+                    <button onClick={stopCamera} className="btn-secondary py-3">
+                      Cancel
+                    </button>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </>
   )
 }
 
+/* ------------------------------------------------------------------ *
+ * Page
+ * ------------------------------------------------------------------ */
 const MyAttendance = () => {
   const { user } = useAuth()
   const currentDate = new Date()
@@ -541,16 +658,16 @@ const MyAttendance = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-9 w-9 animate-spin rounded-full border-[3px] border-gray-200 border-t-brass-500" />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p className="text-red-800">Error loading attendance data</p>
+      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3.5">
+        <p className="text-sm font-medium text-red-800">Error loading attendance data</p>
       </div>
     )
   }
@@ -562,259 +679,211 @@ const MyAttendance = () => {
   // Sorting records newest first
   const sortedRecords = [...records].sort((a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date))
 
-  const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case 'present':
-        return 'bg-green-100 text-green-800'
-      case 'absent':
-        return 'bg-red-100 text-red-800'
-      case 'wfh':
-        return 'bg-purple-100 text-purple-800'
-      case 'on_leave':
-        return 'bg-blue-100 text-blue-800'
-      case 'week_off':
-        return 'bg-gray-100 text-gray-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getStatusLabel = (status) => {
-    switch (status) {
-      case 'wfh':
-        return 'WFH'
-      case 'on_leave':
-        return 'On Leave'
-      case 'week_off':
-        return 'Week Off'
-      default:
-        return status.charAt(0).toUpperCase() + status.slice(1)
-    }
-  }
+  const breakdown = [
+    { key: 'present', value: summary.present || 0 },
+    { key: 'absent', value: summary.absent || 0 },
+    { key: 'wfh', value: summary.wfh || 0 },
+    { key: 'on_leave', value: summary.on_leave || 0 },
+    { key: 'week_off', value: summary.week_off || 0 },
+  ]
+  const breakdownTotal = breakdown.reduce((sum, item) => sum + item.value, 0)
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Attendance</h1>
-          <p className="text-gray-600 mt-1">
-            {user?.full_name} ({user?.emp_id})
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={format(currentDate, 'MMMM yyyy')}
+        title="My Attendance"
+        description={`${user?.full_name || 'You'} · ${user?.emp_id || ''}`}
+      />
 
-      {/* Main Grid: Punch in Card + Summary KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <PunchInOutCard />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Days</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{summary.total_days || 0}</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </motion.div>
+      {/* -------- Punch card + headline figures -------- */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+        <PunchInOutCard />
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Hours</p>
-                <p className="text-lg font-bold text-gray-900 mt-1">
-                  {formatWorkHoursShort(summary.total_work_hours || 0)}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Clock className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Avg Hours/Day</p>
-                <p className="text-lg font-bold text-gray-900 mt-1">
-                  {formatWorkHoursShort(summary.average_work_hours || 0)}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-orange-600" />
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </div>
-
-      {/* Row of 5 columns metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">Present</p>
-          <p className="text-xl font-semibold text-green-600 mt-1">{summary.present || 0}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">Absent</p>
-          <p className="text-xl font-semibold text-red-600 mt-1">{summary.absent || 0}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">Work From Home</p>
-          <p className="text-xl font-semibold text-purple-600 mt-1">{summary.wfh || 0}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">On Leave</p>
-          <p className="text-xl font-semibold text-blue-600 mt-1">{summary.on_leave || 0}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">Week Off</p>
-          <p className="text-xl font-semibold text-gray-600 mt-1">{summary.week_off || 0}</p>
-        </div>
-      </div>
-
-      {/* Daily Attendance Calendar cards */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
-      >
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Daily Attendance Overview</h2>
-        </div>
-        <div className="p-6">
-          <div className="overflow-x-auto">
-            <div className="flex lg:grid lg:grid-cols-7 gap-2 min-w-max lg:min-w-0 pb-2">
-              {dates.map((item, index) => (
-                <div key={index} className="text-center w-24 lg:w-auto flex-shrink-0">
-                  <div className={`p-3 rounded-lg ${getStatusBadgeClass(item.status)} mb-2`}>
-                    <p className="text-xs font-semibold">{item.day.slice(0, 3)}</p>
-                    <p className="text-lg font-bold">{new Date(item.date).getDate()}</p>
-                    {item.checkin_time && item.checkout_time ? (
-                      <p className="text-xs mt-1">
-                        {formatTime(item.checkin_time)} - {formatTime(item.checkout_time)}
-                      </p>
-                    ) : item.checkin_time ? (
-                      <p className="text-xs mt-1">{formatTime(item.checkin_time)}</p>
-                    ) : null}
+        {/* One ledger card whose rows share the punch card's height evenly. */}
+        <Card className="flex flex-col">
+          <CardHeader icon={Calendar} title="This Month" subtitle={format(currentDate, 'MMMM yyyy')} />
+          <div className="mt-4 flex flex-1 flex-col divide-y divide-gray-200 border-t border-gray-200">
+            {[
+              { icon: Calendar, label: 'Total Days', caption: 'Recorded this month', value: summary.total_days || 0, accent: 'bg-primary-50 text-primary-700 ring-primary-100' },
+              { icon: Clock, label: 'Total Hours', caption: 'Logged across the month', value: formatWorkHoursShort(summary.total_work_hours || 0), accent: 'bg-purple-50 text-purple-700 ring-purple-200' },
+              { icon: TrendingUp, label: 'Avg Hours / Day', caption: 'Across working days', value: formatWorkHoursShort(summary.average_work_hours || 0), accent: 'bg-brass-50 text-brass-700 ring-brass-200' },
+            ].map((row) => (
+              <div key={row.label} className="flex flex-1 items-center justify-between gap-4 px-5 py-4 md:px-6">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className={cx('inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset', row.accent)}>
+                    <row.icon className="h-[18px] w-[18px]" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-gray-800">{row.label}</p>
+                    <p className="truncate text-xs text-gray-500">{row.caption}</p>
                   </div>
-                  <p className="text-xs text-gray-600 font-medium">{getStatusLabel(item.status)}</p>
                 </div>
+                <p className="numeral shrink-0 text-2xl font-semibold text-gray-900">{row.value}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* -------- Month composition -------- */}
+      <Card>
+        <CardHeader icon={Sparkles} title="Month at a Glance" subtitle="How this month has been made up" />
+        <CardBody>
+          {/* Proportion bar */}
+          {breakdownTotal > 0 && (
+            <div className="mb-5 flex h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+              {breakdown
+                .filter((item) => item.value > 0)
+                .map((item) => (
+                  <span
+                    key={item.key}
+                    className={cx('h-full transition-all duration-500', styleFor(item.key).dot)}
+                    style={{ width: `${(item.value / breakdownTotal) * 100}%` }}
+                    title={`${styleFor(item.key).label}: ${item.value}`}
+                  />
+                ))}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 sm:grid-cols-3 lg:grid-cols-5">
+            {breakdown.map((item) => (
+              <div key={item.key} className="bg-white px-4 py-3.5">
+                <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-eyebrow text-gray-500">
+                  <span className={cx('h-1.5 w-1.5 rounded-full', styleFor(item.key).dot)} />
+                  {styleFor(item.key).label}
+                </p>
+                <p className="numeral mt-1 text-2xl font-semibold text-gray-900">{item.value}</p>
+              </div>
+            ))}
+          </div>
+        </CardBody>
+      </Card>
+
+      {/* -------- Daily overview -------- */}
+      <Card>
+        <CardHeader
+          icon={Calendar}
+          title="Daily Attendance Overview"
+          subtitle="Every day of the month, at a glance"
+          action={
+            <div className="hidden flex-wrap items-center gap-3 sm:flex">
+              {Object.entries(statusStyles).map(([key, style]) => (
+                <span key={key} className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                  <span className={cx('h-2 w-2 rounded-full', style.dot)} />
+                  {style.label}
+                </span>
               ))}
             </div>
-          </div>
-        </div>
-      </motion.div>
+          }
+        />
+        <CardBody>
+          {dates.length === 0 ? (
+            <Empty icon={Calendar} title="Nothing recorded yet" description="Days will appear here as they are marked." />
+          ) : (
+            <div className="overflow-x-auto">
+              <div className="grid min-w-max grid-cols-7 gap-2.5 pb-1 lg:min-w-0">
+                {dates.map((item, index) => {
+                  const style = styleFor(item.status)
+                  return (
+                    <div key={index} className="w-24 shrink-0 text-center lg:w-auto">
+                      <div
+                        className={cx(
+                          'flex min-h-[92px] flex-col justify-center rounded-xl px-2 py-3 ring-1 ring-inset transition-transform duration-200 hover:-translate-y-0.5',
+                          style.chip
+                        )}
+                      >
+                        <p className="text-[10px] font-semibold uppercase tracking-wide opacity-70">{item.day.slice(0, 3)}</p>
+                        <p className="numeral text-xl font-semibold leading-tight">{new Date(item.date).getDate()}</p>
+                        {item.checkin_time && item.checkout_time ? (
+                          <p className="mt-1 text-[10px] leading-tight opacity-80">
+                            {formatTime(item.checkin_time)}
+                            <br />
+                            {formatTime(item.checkout_time)}
+                          </p>
+                        ) : item.checkin_time ? (
+                          <p className="mt-1 text-[10px] opacity-80">{formatTime(item.checkin_time)}</p>
+                        ) : null}
+                      </div>
+                      <p className="mt-1.5 text-[11px] font-medium text-gray-500">{style.label}</p>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </CardBody>
+      </Card>
 
-      {/* Table Records */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
-      >
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">My Attendance Records</h2>
-        </div>
+      {/* -------- Records table -------- */}
+      <Card className="overflow-hidden">
+        <CardHeader
+          icon={Clock}
+          title="My Attendance Records"
+          subtitle={`${sortedRecords.length} ${sortedRecords.length === 1 ? 'entry' : 'entries'} this month`}
+        />
 
         {sortedRecords.length === 0 ? (
-          <div className="p-8 text-center">
-            <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600">No attendance records found for this period</p>
-          </div>
+          <Empty
+            icon={Calendar}
+            title="No attendance records"
+            description="Nothing has been recorded for this period yet."
+            className="pb-10"
+          />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="mt-4 overflow-x-auto border-t border-gray-200">
             <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Punch In
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Punch Out
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Work Hours
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
-                  </th>
+              <thead>
+                <tr className="bg-gray-50/80">
+                  {['Date', 'Punch In', 'Punch Out', 'Work Hours', 'Status', 'Type'].map((heading) => (
+                    <th
+                      key={heading}
+                      className="whitespace-nowrap px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-eyebrow text-gray-500"
+                    >
+                      {heading}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {sortedRecords.map((record) => (
-                  <tr key={record.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{formatDate(record.date)}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{formatTime(record.checkin_time)}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{formatTime(record.checkout_time)}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {record.work_hours ? formatWorkHours(record.work_hours) : '-'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          record.attendance_status === 'present'
-                            ? 'bg-green-100 text-green-800'
-                            : record.attendance_status === 'absent'
-                            ? 'bg-red-100 text-red-800'
-                            : record.attendance_status === 'wfh'
-                            ? 'bg-purple-100 text-purple-800'
-                            : record.attendance_status === 'on_leave'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {record.attendance_status === 'wfh' ? 'WFH' : record.attendance_status.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          record.is_manual ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        {record.is_manual ? 'Manual' : 'Auto'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+              <tbody className="divide-y divide-gray-200">
+                {sortedRecords.map((record) => {
+                  const style = styleFor(record.attendance_status)
+                  return (
+                    <tr key={record.id} className="transition-colors hover:bg-gray-50/70">
+                      <td className="whitespace-nowrap px-6 py-3.5 text-sm font-medium text-gray-900">
+                        {formatDate(record.date)}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-3.5 text-sm text-gray-700">{formatTime(record.checkin_time)}</td>
+                      <td className="whitespace-nowrap px-6 py-3.5 text-sm text-gray-700">{formatTime(record.checkout_time)}</td>
+                      <td className="whitespace-nowrap px-6 py-3.5 text-sm font-medium text-gray-900">
+                        {record.work_hours ? formatWorkHours(record.work_hours) : '—'}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-3.5">
+                        <span className={cx('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset', style.pill)}>
+                          <span className={cx('h-1.5 w-1.5 rounded-full', style.dot)} />
+                          {style.label}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-3.5">
+                        <span
+                          className={cx(
+                            'inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset',
+                            record.is_manual
+                              ? 'bg-primary-50 text-primary-700 ring-primary-200'
+                              : 'bg-gray-100 text-gray-600 ring-gray-200'
+                          )}
+                        >
+                          {record.is_manual ? 'Manual' : 'Auto'}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
         )}
-      </motion.div>
+      </Card>
     </div>
   )
 }

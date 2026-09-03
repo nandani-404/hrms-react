@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, Edit, X, ToggleLeft, ToggleRight, AlertTriangle, Download } from 'lucide-react'
+import { Plus, Search, Edit, X, ToggleLeft, ToggleRight, AlertTriangle, Download, Eye } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useEmployees, useCreateEmployee, useUpdateEmployee, useDepartments, useStates } from '../hooks/useEmployees'
 import { useAuth } from '../context/AuthContext'
@@ -18,6 +19,7 @@ const INACTIVE_REASONS = [
 
 const Employees = () => {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('active')
   const [filterDepartment, setFilterDepartment] = useState('')
@@ -367,8 +369,8 @@ const Employees = () => {
           )}
           {(user?.role === 'admin' || user?.role === 'hr') && (
             <button
-              onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              onClick={() => navigate('/employees/add')}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#2563eb] text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium text-sm"
             >
               <Plus className="w-5 h-5" />
               Add Employee
@@ -484,8 +486,17 @@ const Employees = () => {
                   <td className="px-6 py-4 text-sm">
                     <div className="flex items-center gap-2">
                       <button
+                        onClick={() => navigate(`/profile/${employee.id || employee.emp_id || employee.email}`)}
+                        className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        title="View Full Profile"
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span>Profile</span>
+                      </button>
+                      <button
                         onClick={() => handleEdit(employee)}
                         className="p-1 text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                        title="Edit Employee"
                       >
                         <Edit className="w-4 h-4" />
                       </button>

@@ -2,89 +2,73 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { 
-  Users, 
-  TrendingUp, 
-  Home, 
-  FileText, 
-  Clock, 
-  Calendar, 
-  ChevronLeft, 
-  ChevronRight, 
-  MessageCircle, 
-  Mail, 
+import {
+  Users,
+  TrendingUp,
+  Home,
+  FileText,
+  Clock,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  MessageCircle,
+  Mail,
   UserX,
-  ArrowRight
+  ArrowRight,
+  Cake,
+  CheckCircle2,
+  ListChecks,
+  Sparkles,
 } from 'lucide-react'
 import { format, subMonths, addMonths } from 'date-fns'
-import { 
-  useDashboardStats, 
-  useAttendanceGraph, 
-  useRecentWfh, 
-  useRecentLeaves, 
-  useUpcomingBirthdays 
+import {
+  useDashboardStats,
+  useAttendanceGraph,
+  useRecentWfh,
+  useRecentLeaves,
+  useUpcomingBirthdays,
 } from '../hooks/useDashboard'
 import { useEmployees } from '../hooks/useEmployees'
 import { useAttendance } from '../hooks/useAttendance'
 import { useWfhRequests } from '../hooks/useWfhRequests'
 import { useLeaveRequests } from '../hooks/useLeaveRequests'
 import { getTeamMembers } from '../utils/teamFilter'
-import { 
-  ResponsiveContainer, 
-  BarChart, 
-  CartesianGrid, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  Legend, 
-  Bar 
+import {
+  ResponsiveContainer,
+  BarChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  Bar,
 } from 'recharts'
 import api from '../services/api'
+import {
+  Avatar,
+  Badge,
+  Card,
+  CardBody,
+  CardHeader,
+  Empty,
+  Segmented,
+  Skeleton,
+  StatTile,
+  StatusPill,
+  cx,
+} from '../components/ui'
 
-const StatCard = ({ icon: Icon, label, value, trend, color, onClick, secondValue }) => (
-  <motion.div
-    whileHover={{ y: -4 }}
-    onClick={onClick}
-    className={`bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100 ${
-      onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''
-    }`}
-  >
-    <div className="flex items-center justify-between">
-      <div className="flex-1">
-        <p className="text-xs md:text-sm text-gray-600 mb-1">{label}</p>
-        {secondValue !== undefined ? (
-          <div className="flex items-center gap-3">
-            <div>
-              <h3 className="text-xl md:text-2xl font-bold text-green-600">{value}</h3>
-            </div>
-            <div className="text-gray-300">|</div>
-            <div>
-              <h3 className="text-xl md:text-2xl font-bold text-red-600">{secondValue}</h3>
-            </div>
-          </div>
-        ) : (
-          <>
-            <h3 className="text-xl md:text-2xl font-bold text-gray-900">{value}</h3>
-            {trend && (
-              <p className="text-xs md:text-sm text-green-600 mt-2 flex items-center gap-1">
-                <TrendingUp className="w-3 h-3 md:w-4 md:h-4" />
-                {trend}
-              </p>
-            )}
-          </>
-        )}
-      </div>
-      <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg ${color} flex items-center justify-center flex-shrink-0`}>
-        <Icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
-      </div>
-    </div>
-  </motion.div>
-)
+const greeting = () => {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
+  return 'Good evening'
+}
 
 const Dashboard = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
-  
+
   // showHRView checks roles or specific reporting managers to display HR elements
   const showHRView =
     user?.role === 'hr' ||
@@ -95,11 +79,12 @@ const Dashboard = () => {
 
   const [selectedMonth, setSelectedMonth] = useState(new Date())
   const selectedMonthStr = format(selectedMonth, 'yyyy-MM')
-  
+
   const [isProcessingMarkAbsent, setIsProcessingMarkAbsent] = useState(false)
+  const [confirmMarkAbsent, setConfirmMarkAbsent] = useState(false)
   const [markAbsentMessage, setMarkAbsentMessage] = useState('')
   const [birthdayDays, setBirthdayDays] = useState(30)
-  
+
   const isCTOOrHead =
     (user?.department === 'IT' && user?.designation === 'CTO') ||
     (user?.department === 'Telecalling' && user?.designation === 'Head - Telecalling')
@@ -120,11 +105,11 @@ const Dashboard = () => {
   const { data: recentWfh, isLoading: wfhLoading } = useRecentWfh(5, filterParams)
   const { data: recentLeaves, isLoading: leavesLoading } = useRecentLeaves(5, filterParams)
   const { data: birthdaysData, isLoading: birthdaysLoading } = useUpcomingBirthdays(birthdayDays, 10)
-  
+
   const { data: employeesData } = useEmployees()
   const allEmployees = employeesData || []
   const teamMembers = getTeamMembers(allEmployees, user)
-  
+
   // totalEmployeesCount:
   const totalEmployeesCount =
     user?.role !== 'super_admin' && user?.role !== 'hr'
@@ -132,7 +117,7 @@ const Dashboard = () => {
       : stats?.total_employees || 0
 
   const todayStr = format(new Date(), 'yyyy-MM-dd')
-  
+
   const { data: attendanceData } = useAttendance({ date: todayStr })
   const { data: wfhRequestsData } = useWfhRequests(filterParams)
   const { data: leaveRequestsData } = useLeaveRequests(filterParams)
@@ -151,7 +136,7 @@ const Dashboard = () => {
   })
 
   // Filter present today:
-  const presentEmployees = Array.from(latestAttendanceMap.values()).filter(record => 
+  const presentEmployees = Array.from(latestAttendanceMap.values()).filter(record =>
     teamMembers.some(member => member.emp_id === record.employee_id) && record.attendance_status === 'present'
   ) || []
 
@@ -163,10 +148,10 @@ const Dashboard = () => {
   // Filter WFH today:
   const wfhTodayCount =
     user?.role !== 'super_admin' && user?.role !== 'hr'
-      ? wfhRequests.filter(req => 
-          teamMembers.some(member => member.emp_id === req.employee_id) && 
-          req.status === 'Approved' && 
-          req.start_date <= todayStr && 
+      ? wfhRequests.filter(req =>
+          teamMembers.some(member => member.emp_id === req.employee_id) &&
+          req.status === 'Approved' &&
+          req.start_date <= todayStr &&
           req.end_date >= todayStr
         ).length
       : stats?.wfh_today || 0
@@ -203,28 +188,21 @@ const Dashboard = () => {
   }
 
   // Month navigation:
-  const handlePrevMonth = () => {
-    setSelectedMonth(prev => subMonths(prev, 1))
-  }
-
-  const handleNextMonth = () => {
-    setSelectedMonth(prev => addMonths(prev, 1))
-  }
-
-  const handleCurrentMonth = () => {
-    setSelectedMonth(new Date())
-  }
+  const handlePrevMonth = () => setSelectedMonth(prev => subMonths(prev, 1))
+  const handleNextMonth = () => setSelectedMonth(prev => addMonths(prev, 1))
+  const handleCurrentMonth = () => setSelectedMonth(new Date())
 
   const isCurrentMonth = format(selectedMonth, 'yyyy-MM') === format(new Date(), 'yyyy-MM')
 
   // Mark Absent handler
   const handleMarkAbsent = async () => {
+    setConfirmMarkAbsent(false)
     setIsProcessingMarkAbsent(true)
     setMarkAbsentMessage('')
     try {
       const { data } = await api.get('/attendance/mark-absent-deadline')
       if (data.success) {
-        setMarkAbsentMessage(`✓ ${data.message} - ${data.data.total_processed} employees processed`)
+        setMarkAbsentMessage(`${data.message} — ${data.data.total_processed} employees processed`)
         setTimeout(() => setMarkAbsentMessage(''), 5000)
       } else {
         setMarkAbsentMessage('Error marking absent')
@@ -236,516 +214,546 @@ const Dashboard = () => {
     }
   }
 
-  if (statsLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    )
-  }
-
-  const getStatusBadgeClass = (status) => {
-    if (!status) return 'bg-gray-100 text-gray-700'
-    const badges = {
-      pending: 'bg-yellow-100 text-yellow-700',
-      approved: 'bg-green-100 text-green-700',
-      rejected: 'bg-red-100 text-red-700',
+  // Month summary derived from the graph series — context HR would otherwise
+  // have to eyeball off the bars.
+  const monthSummary = (() => {
+    if (!graphData || graphData.length === 0) return null
+    const daysWithData = graphData.filter(day => (day.present_count || 0) + (day.absent_count || 0) > 0)
+    if (daysWithData.length === 0) return null
+    const totalPresent = daysWithData.reduce((sum, day) => sum + (day.present_count || 0), 0)
+    const totalAbsent = daysWithData.reduce((sum, day) => sum + (day.absent_count || 0), 0)
+    const best = daysWithData.reduce((top, day) => ((day.present_count || 0) > (top.present_count || 0) ? day : top))
+    return {
+      avgPresent: Math.round(totalPresent / daysWithData.length),
+      totalAbsent,
+      workingDays: daysWithData.length,
+      bestDay: best,
+      rate: totalPresent + totalAbsent > 0 ? Math.round((totalPresent / (totalPresent + totalAbsent)) * 100) : 0,
     }
-    return badges[status.toLowerCase()] || 'bg-gray-100 text-gray-700'
-  }
+  })()
+
+  const displayName = (user?.full_name || user?.name || 'there').split(' ')[0]
 
   return (
-    <div className="space-y-4 md:space-y-6 p-4 md:p-0">
-      <div>
-        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm md:text-base text-gray-600 mt-1">
-          Centralizing People, Powering Performance.
-        </p>
-      </div>
+    <div className="space-y-6">
+      {/* ------------------------------------------------------------------ *
+       * Hero — greeting, date, and the two actions HR reaches for first
+       * ------------------------------------------------------------------ */}
+      <motion.section
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="relative overflow-hidden rounded-2xl border border-primary-900/40 shadow-lift"
+        style={{ backgroundImage: 'linear-gradient(120deg, #142338 0%, #0C1626 60%, #10203A 100%)' }}
+      >
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brass-400/60 to-transparent" />
+        <span className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-brass-400/10 blur-3xl" />
+        <span className="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-primary-400/10 blur-3xl" />
+
+        <div className="relative flex flex-col gap-6 p-6 md:flex-row md:items-end md:justify-between md:p-8">
+          <div className="min-w-0">
+            <p className="flex items-center gap-2 text-[10px] uppercase tracking-eyebrow text-brass-300/80">
+              <Sparkles className="h-3 w-3" />
+              {format(new Date(), 'EEEE, dd MMMM yyyy')}
+            </p>
+            <h1 className="mt-2 font-display text-2xl font-semibold leading-tight text-white md:text-[32px]">
+              {greeting()}, {displayName}
+            </h1>
+            <p className="mt-2 max-w-lg text-sm text-primary-100/60">
+              Centralizing People, Powering Performance.
+            </p>
+          </div>
+
+          {showHRView && (
+            <div className="flex flex-col items-start gap-2.5 md:items-end">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  onClick={() => navigate('/today-attendance')}
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/[0.07] px-4 py-2.5 text-sm font-medium text-white transition-all hover:border-white/25 hover:bg-white/[0.12]"
+                >
+                  <ListChecks className="h-4 w-4 text-brass-300" />
+                  Today's Register
+                </button>
+
+                {confirmMarkAbsent ? (
+                  <div className="flex items-center gap-2 rounded-lg border border-red-400/30 bg-red-500/10 p-1 pl-3">
+                    <span className="text-xs text-red-100">Mark all non-punched as absent?</span>
+                    <button
+                      onClick={handleMarkAbsent}
+                      className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-red-700"
+                    >
+                      Confirm
+                    </button>
+                    <button
+                      onClick={() => setConfirmMarkAbsent(false)}
+                      className="rounded-md px-2.5 py-1.5 text-xs font-medium text-primary-100/70 transition-colors hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmMarkAbsent(true)}
+                    disabled={isProcessingMarkAbsent}
+                    className="inline-flex items-center gap-2 rounded-lg border border-brass-400/30 bg-gradient-to-b from-brass-300 to-brass-500 px-4 py-2.5 text-sm font-semibold text-primary-950 shadow-sm transition-all hover:from-brass-400 hover:to-brass-600 disabled:opacity-60"
+                  >
+                    <UserX className="h-4 w-4" />
+                    {isProcessingMarkAbsent ? 'Processing…' : 'Mark Absent'}
+                  </button>
+                )}
+              </div>
+
+              {markAbsentMessage && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-1.5 text-xs font-medium text-green-300"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  {markAbsentMessage}
+                </motion.p>
+              )}
+            </div>
+          )}
+        </div>
+      </motion.section>
 
       {showHRView && (
         <>
-          {/* Top Stats Cards */}
-          <div className="grid grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
-            <StatCard
-              icon={Users}
-              label="Total Employees"
-              value={totalEmployeesCount}
-              color="bg-primary-600"
-              onClick={() => navigate('/employees')}
-            />
-            <StatCard
-              icon={TrendingUp}
-              label="Today’s Attendance"
-              value={presentCount}
-              secondValue={absentCount}
-              color="bg-green-600"
-              onClick={() => navigate('/today-attendance')}
-            />
-            <StatCard
-              icon={Home}
-              label="WFH Request Pending"
-              value={pendingWfhCount}
-              color="bg-blue-600"
-              onClick={() => navigate('/wfh-requests', { state: { filterStatus: 'Pending' } })}
-            />
-            <StatCard
-              icon={FileText}
-              label="Leave Request Pending"
-              value={pendingLeavesCount}
-              color="bg-purple-600"
-              onClick={() => navigate('/leave-requests', { state: { filterStatus: 'Pending' } })}
-            />
-            <StatCard
-              icon={Clock}
-              label="Short Leave Today"
-              value={stats?.short_leave_today || 0}
-              color="bg-orange-600"
-              onClick={() => navigate('/short-leave')}
-            />
-          </div>
+          {/* ---------------------------------------------------------- *
+           * Key figures
+           * ---------------------------------------------------------- */}
+          <section>
+            <div className="mb-3 flex items-center gap-3">
+              <p className="eyebrow">Today at a glance</p>
+              <span className="h-px flex-1 bg-gray-200" />
+            </div>
 
-          {/* Mark Absent Action Row */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleMarkAbsent}
-              disabled={isProcessingMarkAbsent}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg font-medium transition-colors"
-            >
-              <UserX className="w-4 h-4" />
-              {isProcessingMarkAbsent ? 'Processing...' : 'Mark Absent'}
-            </button>
-            {markAbsentMessage && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="text-sm text-green-600 font-medium"
-              >
-                {markAbsentMessage}
-              </motion.div>
+            {statsLoading ? (
+              <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-[124px] rounded-2xl" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-5">
+                <StatTile
+                  index={0}
+                  icon={Users}
+                  label="Total Employees"
+                  value={totalEmployeesCount}
+                  caption="On the active roster"
+                  accent="ink"
+                  onClick={() => navigate('/employees')}
+                />
+                <StatTile
+                  index={1}
+                  icon={TrendingUp}
+                  label="Today's Attendance"
+                  value={presentCount}
+                  secondValue={absentCount}
+                  caption="Present / Absent"
+                  accent="green"
+                  onClick={() => navigate('/today-attendance')}
+                />
+                <StatTile
+                  index={2}
+                  icon={Home}
+                  label="WFH Pending"
+                  value={pendingWfhCount}
+                  caption={pendingWfhCount ? 'Awaiting your decision' : 'Nothing waiting'}
+                  accent="ink"
+                  onClick={() => navigate('/wfh-requests', { state: { filterStatus: 'Pending' } })}
+                />
+                <StatTile
+                  index={3}
+                  icon={FileText}
+                  label="Leave Pending"
+                  value={pendingLeavesCount}
+                  caption={pendingLeavesCount ? 'Awaiting your decision' : 'Nothing waiting'}
+                  accent="purple"
+                  onClick={() => navigate('/leave-requests', { state: { filterStatus: 'Pending' } })}
+                />
+                <StatTile
+                  index={4}
+                  icon={Clock}
+                  label="Short Leave Today"
+                  value={stats?.short_leave_today || 0}
+                  caption="Part-day permissions"
+                  accent="orange"
+                  onClick={() => navigate('/short-leave')}
+                />
+              </div>
             )}
-          </div>
-        </>
-      )}
+          </section>
 
-      {/* Attendance Bar Graph */}
-      {showHRView && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100"
-        >
-          {/* Header with Month Navigation */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-white" />
+          {/* ---------------------------------------------------------- *
+           * Attendance chart
+           * ---------------------------------------------------------- */}
+          <Card>
+            <CardHeader
+              icon={Calendar}
+              title="Daily Attendance Overview"
+              subtitle="Employee presence, day by day"
+              action={
+                <div className="flex items-center gap-1.5">
+                  {!isCurrentMonth && (
+                    <button
+                      onClick={handleCurrentMonth}
+                      className="mr-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-primary-700 transition-colors hover:bg-primary-50"
+                    >
+                      Today
+                    </button>
+                  )}
+                  <button
+                    onClick={handlePrevMonth}
+                    className="rounded-lg border border-gray-200 bg-white p-1.5 text-gray-600 shadow-xs transition-colors hover:bg-gray-50 hover:text-gray-900"
+                    title="Previous month"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <span className="min-w-[126px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-center text-sm font-medium text-gray-800 shadow-xs">
+                    {format(selectedMonth, 'MMMM yyyy')}
+                  </span>
+                  <button
+                    onClick={handleNextMonth}
+                    disabled={isCurrentMonth}
+                    className={cx(
+                      'rounded-lg border border-gray-200 bg-white p-1.5 text-gray-600 shadow-xs transition-colors',
+                      isCurrentMonth ? 'cursor-not-allowed opacity-40' : 'hover:bg-gray-50 hover:text-gray-900'
+                    )}
+                    title="Next month"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              }
+            />
+
+            {/* Month summary strip */}
+            {monthSummary && !graphLoading && (
+              <div className="mt-5 grid grid-cols-2 gap-px border-y border-gray-200 bg-gray-200 md:grid-cols-4">
+                {[
+                  { label: 'Avg. present', value: monthSummary.avgPresent, sub: 'per working day' },
+                  { label: 'Attendance rate', value: `${monthSummary.rate}%`, sub: 'across the month' },
+                  { label: 'Working days', value: monthSummary.workingDays, sub: 'with records' },
+                  {
+                    label: 'Strongest day',
+                    value: monthSummary.bestDay?.present_count ?? 0,
+                    sub: monthSummary.bestDay?.date ? format(new Date(monthSummary.bestDay.date), 'dd MMM') : '—',
+                  },
+                ].map(item => (
+                  <div key={item.label} className="bg-white px-5 py-3.5">
+                    <p className="text-[10px] uppercase tracking-eyebrow text-gray-400">{item.label}</p>
+                    <p className="numeral mt-1 text-xl font-semibold text-gray-900">{item.value}</p>
+                    <p className="text-[11px] text-gray-500">{item.sub}</p>
+                  </div>
+                ))}
               </div>
-              <div>
-                <h2 className="text-base md:text-lg font-semibold text-gray-900">
-                  Daily Attendance Overview
-                </h2>
-                <p className="text-xs text-gray-500">Track employee presence by date</p>
-              </div>
-            </div>
+            )}
 
-            {/* Month Navigation */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handlePrevMonth}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Previous Month"
-              >
-                <ChevronLeft className="w-5 h-5 text-gray-600" />
-              </button>
-
-              <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
-                <span className="text-sm font-semibold text-blue-900">
-                  {format(selectedMonth, 'MMMM yyyy')}
-                </span>
-              </div>
-
-              <button
-                onClick={handleNextMonth}
-                disabled={isCurrentMonth}
-                className={`p-2 rounded-lg transition-colors ${
-                  isCurrentMonth ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'
-                }`}
-                title="Next Month"
-              >
-                <ChevronRight className="w-5 h-5 text-gray-600" />
-              </button>
-
-              {!isCurrentMonth && (
-                <button
-                  onClick={handleCurrentMonth}
-                  className="ml-2 px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-                >
-                  Today
-                </button>
-              )}
-            </div>
-          </div>
-
-          {graphLoading ? (
-            <div className="flex items-center justify-center h-80">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-3"></div>
-                <p className="text-sm text-gray-500">Loading attendance data...</p>
-              </div>
-            </div>
-          ) : graphData && graphData.length > 0 ? (
-            <div className="bg-gradient-to-br from-gray-50 to-white p-4 rounded-lg border border-gray-100">
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart
-                  data={graphData}
-                  margin={{ top: 20, right: 30, left: 10, bottom: 10 }}
-                  barCategoryGap="20%"
-                >
-                  <defs>
-                    <linearGradient id="colorPresent" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.9} />
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.7} />
-                    </linearGradient>
-                    <linearGradient id="colorAbsent" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.9} />
-                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0.7} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                  <XAxis
-                    dataKey="day"
-                    type="number"
-                    domain={[0.5, graphData.length + 0.5]}
-                    ticks={graphData.map(d => d.day)}
-                    label={{
-                      value: 'Date of Month',
-                      position: 'insideBottom',
-                      offset: 0,
-                      style: { fontWeight: 600, fill: '#374151', fontSize: 14 }
-                    }}
-                    tick={{ fontSize: 11, fill: '#6b7280' }}
-                    interval={0}
-                    angle={0}
-                    height={50}
-                    stroke="#9ca3af"
-                  />
-                  <YAxis
-                    label={{
-                      value: 'Number of Employees',
-                      angle: -90,
-                      position: 'center',
-                      style: { fontWeight: 600, fill: '#374151', fontSize: 14, textAnchor: 'middle' }
-                    }}
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                    allowDecimals={false}
-                    domain={[0, 'auto']}
-                    stroke="#9ca3af"
-                    width={80}
-                  />
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        const data = payload[0].payload
-                        return (
-                          <div className="bg-white p-4 border-2 border-gray-200 rounded-xl shadow-xl">
-                            <div className="flex items-center gap-2 mb-3">
-                              <Calendar className="w-4 h-4 text-blue-600" />
-                              <p className="text-sm font-semibold text-gray-900">
-                                {format(new Date(data.date), 'EEEE, MMM dd, yyyy')}
-                              </p>
-                            </div>
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between gap-4">
-                                <span className="text-xs text-gray-600">Present:</span>
-                                <span className="text-lg font-bold text-green-600">{data.present_count || 0}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-4">
-                                <span className="text-xs text-gray-600">Absent:</span>
-                                <span className="text-lg font-bold text-red-600">{data.absent_count || 0}</span>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      }
-                      return null
-                    }}
-                    cursor={{ fill: 'rgba(16, 185, 129, 0.1)' }}
-                  />
-                  <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="square" />
-                  <Bar
-                    dataKey="present_count"
-                    fill="url(#colorPresent)"
-                    radius={[8, 8, 0, 0]}
-                    maxBarSize={35}
-                    animationDuration={800}
-                    name="Present"
-                  />
-                  <Bar
-                    dataKey="absent_count"
-                    fill="url(#colorAbsent)"
-                    radius={[8, 8, 0, 0]}
-                    maxBarSize={35}
-                    animationDuration={800}
-                    name="Absent"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-80 text-gray-500">
-              <Calendar className="w-16 h-16 text-gray-300 mb-4" />
-              <p className="text-lg font-medium">No attendance data available</p>
-              <p className="text-sm text-gray-400 mt-1">for {format(selectedMonth, 'MMMM yyyy')}</p>
-            </div>
-          )}
-        </motion.div>
-      )}
-
-      {/* Upcoming Birthdays widget */}
-      {showHRView && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-blue-600" />
-              <div>
-                <h2 className="text-base md:text-lg font-semibold text-gray-900">
-                  Upcoming Birthdays
-                </h2>
-                {birthdaysData?.period && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Next {birthdayDays} days ({format(new Date(birthdaysData.period.start_date), 'dd MMM yyyy')} - {format(new Date(birthdaysData.period.end_date), 'dd MMM yyyy')})
-                  </p>
-                )}
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setBirthdayDays(1)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${birthdayDays === 1 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                title="Birthdays today only"
-              >
-                Today
-              </button>
-              <button
-                onClick={() => setBirthdayDays(30)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${birthdayDays === 30 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                title="Next month"
-              >
-                30 Days
-              </button>
-              <button
-                onClick={() => setBirthdayDays(60)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${birthdayDays === 60 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                title="Next 2 months"
-              >
-                60 Days
-              </button>
-              <button
-                onClick={() => setBirthdayDays(90)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${birthdayDays === 90 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                title="Next quarter"
-              >
-                90 Days
-              </button>
-            </div>
-          </div>
-
-          {birthdaysLoading ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
-            </div>
-          ) : birthdaysData?.birthdays && birthdaysData.birthdays.length > 0 ? (
-            <div className="space-y-3">
-              {birthdaysData.birthdays.map(birthday => (
-                <div
-                  key={birthday.emp_id}
-                  className="p-4 bg-gradient-to-r from-blue-50 to-blue-50 rounded-lg border border-blue-100 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={birthday.photo_path ? `https://truckmitr.com/storage/app/public/${birthday.photo_path}` : 'https://via.placeholder.com/48'}
-                      alt={birthday.full_name}
-                      className="w-12 h-12 rounded-full object-cover"
+            <CardBody className={monthSummary && !graphLoading ? 'pt-5' : ''}>
+              {graphLoading ? (
+                <div className="flex h-80 items-center justify-center">
+                  <div className="text-center">
+                    <div className="mx-auto mb-3 h-9 w-9 animate-spin rounded-full border-[3px] border-gray-200 border-t-brass-500" />
+                    <p className="text-sm text-gray-500">Loading attendance data…</p>
+                  </div>
+                </div>
+              ) : graphData && graphData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={380}>
+                  <BarChart data={graphData} margin={{ top: 8, right: 8, left: 0, bottom: 8 }} barCategoryGap="22%">
+                    <defs>
+                      <linearGradient id="colorPresent" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#2F8256" />
+                        <stop offset="100%" stopColor="#226845" />
+                      </linearGradient>
+                      <linearGradient id="colorAbsent" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#C4453C" />
+                        <stop offset="100%" stopColor="#A83128" />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="2 6" stroke="#E6E3DB" vertical={false} />
+                    <XAxis
+                      dataKey="day"
+                      type="number"
+                      domain={[0.5, graphData.length + 0.5]}
+                      ticks={graphData.map(d => d.day)}
+                      tick={{ fontSize: 11, fill: '#7B7568' }}
+                      interval={0}
+                      height={44}
+                      tickLine={false}
+                      axisLine={{ stroke: '#E6E3DB' }}
+                      label={{
+                        value: 'Date of month',
+                        position: 'insideBottom',
+                        offset: -2,
+                        style: { fontSize: 11, fill: '#A8A296', letterSpacing: '0.08em', textTransform: 'uppercase' },
+                      }}
                     />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">{birthday.full_name}</p>
-                          <p className="text-xs text-gray-600">{birthday.designation}</p>
+                    <YAxis
+                      tick={{ fontSize: 11, fill: '#7B7568' }}
+                      allowDecimals={false}
+                      domain={[0, 'auto']}
+                      tickLine={false}
+                      axisLine={false}
+                      width={44}
+                    />
+                    <Tooltip
+                      cursor={{ fill: 'rgba(44, 78, 126, 0.05)' }}
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload
+                          return (
+                            <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-xl">
+                              <p className="mb-2.5 font-display text-sm font-semibold text-gray-900">
+                                {format(new Date(data.date), 'EEEE, dd MMM yyyy')}
+                              </p>
+                              <div className="space-y-1.5">
+                                <div className="flex items-center justify-between gap-6">
+                                  <span className="flex items-center gap-2 text-xs text-gray-600">
+                                    <span className="h-2 w-2 rounded-full bg-green-600" />
+                                    Present
+                                  </span>
+                                  <span className="numeral text-sm font-semibold text-green-700">
+                                    {data.present_count || 0}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between gap-6">
+                                  <span className="flex items-center gap-2 text-xs text-gray-600">
+                                    <span className="h-2 w-2 rounded-full bg-red-600" />
+                                    Absent
+                                  </span>
+                                  <span className="numeral text-sm font-semibold text-red-700">
+                                    {data.absent_count || 0}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        }
+                        return null
+                      }}
+                    />
+                    <Legend
+                      wrapperStyle={{ paddingTop: 16, fontSize: 12 }}
+                      iconType="circle"
+                      iconSize={8}
+                      formatter={value => <span style={{ color: '#5B564B' }}>{value}</span>}
+                    />
+                    <Bar
+                      dataKey="present_count"
+                      fill="url(#colorPresent)"
+                      radius={[5, 5, 0, 0]}
+                      maxBarSize={26}
+                      animationDuration={700}
+                      name="Present"
+                    />
+                    <Bar
+                      dataKey="absent_count"
+                      fill="url(#colorAbsent)"
+                      radius={[5, 5, 0, 0]}
+                      maxBarSize={26}
+                      animationDuration={700}
+                      name="Absent"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <Empty
+                  icon={Calendar}
+                  title="No attendance recorded"
+                  description={`Nothing has been logged for ${format(selectedMonth, 'MMMM yyyy')} yet.`}
+                />
+              )}
+            </CardBody>
+          </Card>
+
+          {/* ---------------------------------------------------------- *
+           * Birthdays
+           * ---------------------------------------------------------- */}
+          <Card>
+            <CardHeader
+              icon={Cake}
+              title="Upcoming Birthdays"
+              subtitle={
+                birthdaysData?.period
+                  ? `${format(new Date(birthdaysData.period.start_date), 'dd MMM')} – ${format(
+                      new Date(birthdaysData.period.end_date),
+                      'dd MMM yyyy'
+                    )}`
+                  : 'A little goodwill goes a long way'
+              }
+              action={
+                <Segmented
+                  value={birthdayDays}
+                  onChange={setBirthdayDays}
+                  options={[
+                    { value: 1, label: 'Today' },
+                    { value: 30, label: '30 days' },
+                    { value: 60, label: '60 days' },
+                    { value: 90, label: '90 days' },
+                  ]}
+                />
+              }
+            />
+
+            <CardBody>
+              {birthdaysLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 2 }).map((_, i) => (
+                    <Skeleton key={i} className="h-20 rounded-xl" />
+                  ))}
+                </div>
+              ) : birthdaysData?.birthdays && birthdaysData.birthdays.length > 0 ? (
+                <ul className="divide-y divide-gray-200 overflow-hidden rounded-xl border border-gray-200">
+                  {birthdaysData.birthdays.map(birthday => (
+                    <li
+                      key={birthday.emp_id}
+                      className="group flex flex-wrap items-center gap-4 bg-white px-4 py-3.5 transition-colors hover:bg-gray-50"
+                    >
+                      <Avatar name={birthday.full_name} src={birthday.photo_path} size="md" />
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-gray-900">{birthday.full_name}</p>
+                        <p className="truncate text-xs text-gray-500">{birthday.designation}</p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Turning <span className="font-semibold text-gray-800">{birthday.age_on_birthday}</span>
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className="numeral text-sm font-semibold text-gray-900">
+                            {format(new Date(birthday.birthday_date), 'dd MMM')}
+                          </p>
+                          <p className="text-[11px] text-gray-500">{birthday.birthday_day}</p>
                         </div>
-                        <div className="flex items-center gap-2">
+
+                        <Badge tone={birthday.days_until_birthday === 0 ? 'brass' : 'info'}>
+                          {birthday.days_until_birthday === 0
+                            ? 'Today'
+                            : `${birthday.days_until_birthday} days`}
+                        </Badge>
+
+                        <div className="flex items-center gap-1 opacity-70 transition-opacity group-hover:opacity-100">
                           <a
-                            href={`https://wa.me/${birthday.mobile.replace(/\D/g, '')}`}
+                            href={`https://wa.me/${String(birthday.mobile || '').replace(/\D/g, '')}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                            title="Send WhatsApp message"
+                            className="rounded-lg border border-gray-200 p-2 text-green-700 transition-colors hover:border-green-200 hover:bg-green-50"
+                            title="Send a WhatsApp wish"
                           >
-                            <MessageCircle className="w-4 h-4" />
+                            <MessageCircle className="h-4 w-4" />
                           </a>
                           <a
                             href={`mailto:${birthday.email}?subject=Happy%20Birthday!&body=Hi%20${birthday.full_name},%0D%0A%0D%0AWishing%20you%20a%20very%20happy%20birthday!%20🎉%0D%0A%0D%0ABest%20wishes`}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Send email"
+                            className="rounded-lg border border-gray-200 p-2 text-primary-700 transition-colors hover:border-primary-200 hover:bg-primary-50"
+                            title="Send an email wish"
                           >
-                            <Mail className="w-4 h-4" />
+                            <Mail className="h-4 w-4" />
                           </a>
-                          <div className="text-right ml-2">
-                            <p className="text-sm font-bold text-blue-600">
-                              {format(new Date(birthday.birthday_date), 'MMM dd')}
-                            </p>
-                            <p className="text-xs text-gray-500">{birthday.birthday_day}</p>
-                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-xs text-gray-600">
-                          Turning <span className="font-semibold text-gray-900">{birthday.age_on_birthday}</span>
-                        </span>
-                        <span className="text-xs font-medium text-blue-600 bg-white px-2 py-1 rounded">
-                          {birthday.days_until_birthday} days away
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-32 text-gray-500">
-              <Calendar className="w-12 h-12 text-gray-300 mb-2" />
-              <p className="text-sm font-medium">No upcoming birthdays</p>
-              <p className="text-xs text-gray-400 mt-1">in the next {birthdayDays} days</p>
-            </div>
-          )}
-        </motion.div>
-      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <Empty
+                  icon={Cake}
+                  title="No birthdays coming up"
+                  description={`Nobody is celebrating in the next ${birthdayDays} days.`}
+                />
+              )}
+            </CardBody>
+          </Card>
 
-      {/* Recent WFH and Leaves requests */}
-      {showHRView && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-          {/* Recent WFH */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Home className="w-5 h-5 text-blue-600" />
-                <h2 className="text-base md:text-lg font-semibold text-gray-900">
-                  Recent WFH Requests
-                </h2>
-              </div>
-              <button
-                onClick={() => navigate('/wfh-requests')}
-                className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
-              >
-                View All
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            {wfhLoading ? (
-              <div className="flex items-center justify-center h-32">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
-              </div>
-            ) : finalRecentWfh && finalRecentWfh.length > 0 ? (
-              <div className="space-y-3">
-                {finalRecentWfh.map(request => (
-                  <div
-                    key={request.id}
-                    className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                    onClick={() => navigate('/wfh-requests')}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-gray-900">
-                        {request.employee?.full_name || 'Unknown'}
-                      </span>
-                      <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadgeClass(request.status)}`}>
-                        {request.status}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600">
-                      {format(new Date(request.start_date), 'MMM dd')} - {format(new Date(request.end_date), 'MMM dd, yyyy')}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-32 text-gray-500 text-sm">
-                No WFH requests yet
-              </div>
-            )}
-          </motion.div>
-
-          {/* Recent Leave */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-green-600" />
-                <h2 className="text-base md:text-lg font-semibold text-gray-900">
-                  Recent Leave Requests
-                </h2>
-              </div>
-              <button
-                onClick={() => navigate('/leave-requests')}
-                className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
-              >
-                View All
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            {leavesLoading ? (
-              <div className="flex items-center justify-center h-32">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
-              </div>
-            ) : finalRecentLeaves && finalRecentLeaves.length > 0 ? (
-              <div className="space-y-3">
-                {finalRecentLeaves.map(request => (
-                  <div
-                    key={request.id}
-                    className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                    onClick={() => navigate('/leave-requests')}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-gray-900">
-                        {request.employee?.full_name || 'Unknown'}
-                      </span>
-                      <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadgeClass(request.status)}`}>
-                        {request.status}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600">
-                      {request.leave_type} • {format(new Date(request.start_date), 'MMM dd')} - {format(new Date(request.end_date), 'MMM dd, yyyy')}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-32 text-gray-500 text-sm">
-                No leave requests yet
-              </div>
-            )}
-          </motion.div>
-        </div>
+          {/* ---------------------------------------------------------- *
+           * Recent requests
+           * ---------------------------------------------------------- */}
+          <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-2">
+            <RequestPanel
+              icon={Home}
+              title="Recent WFH Requests"
+              subtitle="Latest five submissions"
+              loading={wfhLoading}
+              requests={finalRecentWfh}
+              emptyText="No work-from-home requests yet"
+              onViewAll={() => navigate('/wfh-requests')}
+              renderMeta={request =>
+                `${format(new Date(request.start_date), 'dd MMM')} – ${format(new Date(request.end_date), 'dd MMM yyyy')}`
+              }
+            />
+            <RequestPanel
+              icon={FileText}
+              title="Recent Leave Requests"
+              subtitle="Latest five submissions"
+              loading={leavesLoading}
+              requests={finalRecentLeaves}
+              emptyText="No leave requests yet"
+              onViewAll={() => navigate('/leave-requests')}
+              renderMeta={request =>
+                `${request.leave_type} · ${format(new Date(request.start_date), 'dd MMM')} – ${format(
+                  new Date(request.end_date),
+                  'dd MMM yyyy'
+                )}`
+              }
+            />
+          </div>
+        </>
       )}
     </div>
   )
 }
+
+/** Shared shell for the two "recent requests" panels. */
+const RequestPanel = ({ icon, title, subtitle, loading, requests, emptyText, onViewAll, renderMeta }) => (
+  <Card>
+    <CardHeader
+      icon={icon}
+      title={title}
+      subtitle={subtitle}
+      action={
+        <button
+          onClick={onViewAll}
+          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
+        >
+          View all
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      }
+    />
+    <CardBody>
+      {loading ? (
+        <div className="space-y-2.5">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 rounded-lg" />
+          ))}
+        </div>
+      ) : requests && requests.length > 0 ? (
+        <ul className="divide-y divide-gray-200 overflow-hidden rounded-xl border border-gray-200">
+          {requests.map(request => (
+            <li
+              key={request.id}
+              onClick={onViewAll}
+              className="flex cursor-pointer items-center gap-3 bg-white px-4 py-3 transition-colors hover:bg-gray-50"
+            >
+              <Avatar name={request.employee?.full_name || 'Unknown'} src={request.employee?.photo_path} size="sm" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-gray-900">
+                  {request.employee?.full_name || 'Unknown'}
+                </p>
+                <p className="truncate text-xs text-gray-500">{renderMeta(request)}</p>
+              </div>
+              <StatusPill status={request.status} />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <Empty icon={icon} title={emptyText} description="New submissions will appear here." />
+      )}
+    </CardBody>
+  </Card>
+)
 
 export default Dashboard

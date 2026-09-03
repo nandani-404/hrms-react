@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   base: '/hrms/',
   server: {
-    port: 3000
+    port: 3000,
+    host: true
   }
 })
