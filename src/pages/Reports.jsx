@@ -106,10 +106,10 @@ const Reports = () => {
                   <h3 className="text-2xl font-bold text-gray-900">
                     {reportData.report?.length > 0
                       ? Math.round(
-                          reportData.report.reduce((acc, emp) => 
-                            acc + calculateAttendanceRate(emp.present, emp.total_days), 0
-                          ) / reportData.report.length
-                        )
+                        reportData.report.reduce((acc, emp) =>
+                          acc + calculateAttendanceRate(emp.present, emp.total_days), 0
+                        ) / reportData.report.length
+                      )
                       : 0}%
                   </h3>
                 </div>
