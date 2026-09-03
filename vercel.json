@@ -1,6 +1,5 @@
 {
   "rewrites": [
-    { "source": "/hrms/assets/(.*)", "destination": "/hrms/assets/$1" },
-    { "source": "/hrms/(.*)", "destination": "/hrms/index.html" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
