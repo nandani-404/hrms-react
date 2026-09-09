@@ -580,7 +580,7 @@ export default function HREmployeeLoan() {
             <span className="text-gray-800 font-semibold">Employee Loan Management</span>
           </nav>
           <div className="flex items-center gap-3">
-            <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-gray-950">Employee Loan Management</h1>
+            <h1 className="font-sans text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">Employee Loan Management</h1>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-900 text-white text-sm font-semibold uppercase tracking-wider">
               <ShieldCheck className="h-4 w-4 text-emerald-400" />
               HR Portal
@@ -648,7 +648,7 @@ export default function HREmployeeLoan() {
             )}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-500 group-hover:text-gray-700 transition-colors">
+              <span className="text-xs font-medium text-gray-500 group-hover:text-gray-700 transition-colors">
                 {card.label}
               </span>
               <span className={cx('flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-transform group-hover:scale-105', card.iconBg)}>
@@ -656,7 +656,7 @@ export default function HREmployeeLoan() {
               </span>
             </div>
             <div className="my-1">
-              <h2 className="text-2xl sm:text-[26px] font-extrabold text-gray-950 tracking-tight leading-tight">
+              <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight leading-tight">
                 {card.value}
               </h2>
             </div>
@@ -678,7 +678,7 @@ export default function HREmployeeLoan() {
               key={tab}
               onClick={() => { setActiveTab(tab); setCurrentPage(1) }}
               className={cx(
-                'whitespace-nowrap border-b-2 px-4 py-3 text-base font-semibold transition-colors flex items-center gap-2',
+                'whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition-colors flex items-center gap-2',
                 activeTab === tab
                   ? 'border-gray-950 text-gray-950'
                   : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'

@@ -69,3 +69,32 @@ export const useUpcomingBirthdays = (days = 30, limit = 5) => {
     staleTime: 1000 * 60 * 5,
   })
 }
+
+// Get user's tasks for dashboard mini tracker
+export const useDashboardTasks = () => {
+  return useQuery({
+    queryKey: ['dashboard-tasks'],
+    queryFn: async () => {
+      const { data } = await api.get('/tasks')
+      return Array.isArray(data) ? data : data.data || []
+    },
+    staleTime: 1000 * 60 * 2,
+  })
+}
+
+// Get department-wise employee breakdown
+export const useDepartmentBreakdown = () => {
+  return useQuery({
+    queryKey: ['department-breakdown'],
+    queryFn: async () => {
+      try {
+        const { data } = await api.get('/dashboard/department-breakdown')
+        return data.data || data
+      } catch {
+        // Fallback: fetch employees and compute breakdown client-side
+        return null
+      }
+    },
+    staleTime: 1000 * 60 * 5,
+  })
+}

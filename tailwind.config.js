@@ -18,8 +18,8 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Helvetica Neue', 'Arial', 'sans-serif'],
-        display: ['"Playfair Display"', 'Georgia', 'Cambria', 'Times New Roman', 'serif'],
-        serif: ['"Playfair Display"', 'Georgia', 'serif'],
+        display: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        serif: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Helvetica Neue', 'Arial', 'sans-serif'],
       },
       colors: {
         // Deep navy — structure, primary action, the sidebar rail.

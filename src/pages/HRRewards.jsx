@@ -388,7 +388,7 @@ export default function HRRewards() {
             <span className="text-gray-800 font-semibold">Overview</span>
           </nav>
           <div className="flex items-center gap-3">
-            <h1 className="font-serif text-3xl font-bold tracking-tight text-gray-950">Rewards & Recognition</h1>
+            <h1 className="font-sans text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">Rewards & Recognition</h1>
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200">
               <ShieldCheck className="h-3.5 w-3.5" /> HR Portal
             </span>

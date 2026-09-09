@@ -641,7 +641,7 @@ export default function SalaryAdvance() {
             <span className="text-gray-800 font-semibold">Salary Advance Management</span>
           </nav>
           <div className="flex items-center gap-3">
-            <h1 className="font-serif text-3xl font-bold tracking-tight text-gray-950">Salary Advance Management</h1>
+            <h1 className="font-sans text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">Salary Advance Management</h1>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-900 text-white text-xs font-semibold uppercase tracking-wider">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
               HR Portal
@@ -722,7 +722,7 @@ export default function SalaryAdvance() {
           >
             {/* Top row: Label + Icon */}
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 group-hover:text-gray-700 transition-colors">
+              <span className="text-xs font-medium text-slate-500 group-hover:text-slate-700 transition-colors">
                 {card.label}
               </span>
               <span className={cx('flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-transform group-hover:scale-105', card.iconBg)}>
@@ -732,7 +732,7 @@ export default function SalaryAdvance() {
 
             {/* Middle: Prominent Value */}
             <div className="my-1">
-              <h2 className="text-xl sm:text-[22px] font-bold text-gray-950 tracking-tight leading-tight">
+              <h2 className="text-lg sm:text-xl font-semibold text-slate-900 tracking-tight leading-tight">
                 {card.value}
               </h2>
             </div>
@@ -766,7 +766,7 @@ export default function SalaryAdvance() {
                   setCurrentPage(1)
                 }}
                 className={cx(
-                  'whitespace-nowrap border-b-2 px-3 py-3 text-sm font-semibold tracking-wide transition-colors duration-150 flex items-center gap-2',
+                  'whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium transition-colors duration-150 flex items-center gap-2',
                   activeTab === tab
                     ? 'border-gray-950 text-gray-950'
                     : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'

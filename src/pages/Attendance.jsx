@@ -382,54 +382,70 @@ setIsExporting(false)
   }
 
   return (
-    <div className="space-y-4 md:space-y-6 p-4 md:p-0">
-      {/* Header */}
-      <div>
-        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Attendance</h1>
-        <p className="text-sm md:text-base text-gray-600 mt-1">
-          {isHR ? 'Manage employee attendance' : canManage ? 'Manage team attendance' : 'Mark your attendance'}
+    <div className="space-y-6">
+      {/* Top Header */}
+      <div className="border-b border-slate-200/80 pb-4">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1">
+          Attendance Register
+        </p>
+        <h1 className="font-sans text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
+          Attendance Register
+        </h1>
+        <p className="text-xs sm:text-sm font-normal text-slate-500 mt-1">
+          {isHR ? 'Manage employee attendance & revised records' : canManage ? 'Manage team attendance' : 'Mark your daily attendance'}
         </p>
       </div>
 
-      {/* User Check-in/out Section */}
-      <div className="bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl shadow-sm border border-primary-200 p-4 md:p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary-600 flex items-center justify-center">
-            <User className="w-5 h-5 md:w-6 md:h-6 text-white" />
+      {/* User Punch Card - Sleek Dark Classic Style */}
+      <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 p-5 md:p-6 text-white shadow-md">
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/40 to-transparent" />
+        
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-800">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 text-white flex items-center justify-center text-base font-bold shrink-0">
+              {user?.full_name?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'HR'}
+            </div>
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">{user?.full_name}</h2>
+              <p className="text-xs font-semibold text-slate-300">{user?.emp_id}</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-base md:text-lg font-semibold text-gray-900">{user?.full_name}</h2>
-            <p className="text-xs md:text-sm text-gray-600">{user?.emp_id}</p>
-          </div>
+
+          {todayStatus?.attendance?.work_hours && (
+            <div className="inline-flex items-center gap-2 rounded-xl bg-slate-800/80 border border-slate-700/80 px-3.5 py-2 text-xs font-medium text-slate-200">
+              <Clock className="w-4 h-4 text-amber-300" />
+              <span>Work Hours Today: <strong className="text-white font-bold">{formatWorkHours(todayStatus.attendance.work_hours)}</strong></span>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className={`p-3 md:p-4 rounded-lg ${checkedIn ? 'bg-green-100' : 'bg-gray-100'}`}>
-            <div className="flex items-center gap-2 mb-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 my-5">
+          <div className={`p-4 rounded-xl border transition-all ${checkedIn ? 'bg-emerald-950/40 border-emerald-500/30' : 'bg-slate-800/60 border-slate-700/70'}`}>
+            <div className="flex items-center gap-2 mb-1.5">
               {checkedIn ? (
-                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
               ) : (
-                <XCircle className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />
+                <XCircle className="w-4 h-4 text-slate-400" />
               )}
-              <span className="text-xs md:text-sm font-medium text-gray-700">Punch In</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">Punch In</span>
             </div>
-            <p className="text-xs md:text-sm text-gray-600">
+            <p className={`text-base sm:text-lg font-bold ${checkedIn ? 'text-emerald-300' : 'text-slate-300'}`}>
               {todayStatus?.attendance?.checkin_time 
                 ? format(new Date(todayStatus.attendance.checkin_time), 'hh:mm a')
                 : 'Not marked'}
             </p>
           </div>
 
-          <div className={`p-3 md:p-4 rounded-lg ${checkedOut ? 'bg-green-100' : 'bg-gray-100'}`}>
-            <div className="flex items-center gap-2 mb-1">
+          <div className={`p-4 rounded-xl border transition-all ${checkedOut ? 'bg-emerald-950/40 border-emerald-500/30' : 'bg-slate-800/60 border-slate-700/70'}`}>
+            <div className="flex items-center gap-2 mb-1.5">
               {checkedOut ? (
-                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
               ) : (
-                <XCircle className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />
+                <XCircle className="w-4 h-4 text-slate-400" />
               )}
-              <span className="text-xs md:text-sm font-medium text-gray-700">Punch Out</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">Punch Out</span>
             </div>
-            <p className="text-xs md:text-sm text-gray-600">
+            <p className={`text-base sm:text-lg font-bold ${checkedOut ? 'text-emerald-300' : 'text-slate-300'}`}>
               {todayStatus?.attendance?.checkout_time 
                 ? format(new Date(todayStatus.attendance.checkout_time), 'hh:mm a')
                 : 'Not marked'}
@@ -437,14 +453,14 @@ setIsExporting(false)
           </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-3 pt-1">
           {!checkedIn && (
             <button
               onClick={() => startCamera(true)}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-all shadow-sm"
             >
-              <LogIn className="w-4 h-4 md:w-5 md:h-5" />
-              <span className="text-sm md:text-base">Punch In</span>
+              <LogIn className="w-4 h-4" />
+              <span>Punch In</span>
             </button>
           )}
           
@@ -461,28 +477,20 @@ setIsExporting(false)
                   }
                 }
               }}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold transition-all shadow-sm"
             >
-              <LogOut className="w-4 h-4 md:w-5 md:h-5" />
-              <span className="text-sm md:text-base">Punch Out</span>
+              <LogOut className="w-4 h-4" />
+              <span>Punch Out</span>
             </button>
           )}
 
           {checkedIn && checkedOut && (
-            <div className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-200 text-gray-600 rounded-lg font-medium">
-              <Clock className="w-4 h-4 md:w-5 md:h-5" />
-              <span className="text-sm md:text-base">Attendance Marked</span>
+            <div className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-slate-800/90 border border-slate-700 text-amber-200 rounded-xl text-sm font-semibold">
+              <Clock className="w-4 h-4 text-amber-300" />
+              <span>Attendance Marked for Today</span>
             </div>
           )}
         </div>
-
-        {todayStatus?.attendance?.work_hours && (
-          <div className="mt-3 p-3 bg-white rounded-lg">
-            <p className="text-xs md:text-sm text-gray-600">
-              Work Hours: <span className="font-semibold text-gray-900">{formatWorkHours(todayStatus.attendance.work_hours)}</span>
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Camera Modal */}
@@ -492,21 +500,24 @@ setIsExporting(false)
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           >
             <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="bg-white rounded-xl max-w-md w-full overflow-hidden"
+              initial={{ scale: 0.95, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 10 }}
+              className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200"
             >
-              <div className="p-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {isCheckingIn ? 'Punch In' : 'Punch Out'} - Capture Selfie
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-base font-bold text-slate-900">
+                  {isCheckingIn ? 'Punch In' : 'Punch Out'} — Take Photo
                 </h3>
+                <button onClick={stopCamera} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              <div className="relative bg-black aspect-video">
+              <div className="relative bg-slate-950 aspect-video">
                 {!capturedImage ? (
                   <video
                     ref={videoRef}
@@ -524,19 +535,19 @@ setIsExporting(false)
                 <canvas ref={canvasRef} className="hidden" />
               </div>
 
-              <div className="p-4 flex gap-3">
+              <div className="p-4 flex gap-3 bg-slate-50 border-t border-slate-100">
                 {!capturedImage ? (
                   <>
                     <button
                       onClick={capturePhoto}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-semibold transition-colors"
                     >
-                      <Camera className="w-5 h-5" />
+                      <Camera className="w-4 h-4" />
                       Capture
                     </button>
                     <button
                       onClick={stopCamera}
-                      className="px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
+                      className="px-4 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-xl text-sm font-semibold transition-colors"
                     >
                       Cancel
                     </button>
@@ -546,14 +557,13 @@ setIsExporting(false)
                     <button
                       onClick={submitAttendance}
                       disabled={checkInMutation.isPending || checkOutMutation.isPending}
-                      className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                      className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
                     >
-                      {checkInMutation.isPending || checkOutMutation.isPending ? 'Submitting...' : 'Submit'}
+                      {checkInMutation.isPending || checkOutMutation.isPending ? 'Submitting...' : 'Submit Attendance'}
                     </button>
                     <button
                       onClick={async () => {
                         setCapturedImage(null)
-                        // Restart camera for retake
                         try {
                           const stream = await navigator.mediaDevices.getUserMedia({ 
                             video: { facingMode: 'user', width: 1280, height: 720 } 
@@ -562,11 +572,11 @@ setIsExporting(false)
                           if (videoRef.current) {
                             videoRef.current.srcObject = stream
                           }
-                        } catch (error) {
+                        } catch {
                           toast.error('Camera access denied')
                         }
                       }}
-                      className="px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
+                      className="px-4 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-xl text-sm font-semibold transition-colors"
                     >
                       Retake
                     </button>
@@ -581,150 +591,11 @@ setIsExporting(false)
       {/* HR/Manager Section - Only visible to HR and Team Managers */}
       {canManage && (
         <>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
-            <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">
-              {isHR ? 'Attendance Records' : 'Team Attendance Records'}
-            </h3>
-            
-            {/* Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Single Date</label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => {
-                    setSelectedDate(e.target.value)
-                    setStartDate('')
-                    setEndDate('')
-                    setCurrentPage(1)
-                  }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => {
-                    setStartDate(e.target.value)
-                    setSelectedDate('')
-                    setCurrentPage(1)
-                  }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => {
-                    setEndDate(e.target.value)
-                    setSelectedDate('')
-                    setCurrentPage(1)
-                  }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Employee</label>
-                <select
-                  value={selectedEmployee}
-                  onChange={(e) => {
-                    setSelectedEmployee(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  <option value="">{isHR ? 'All Employees' : 'All Team Members'}</option>
-                  {employees.map((emp) => (
-                    <option key={emp.emp_id} value={emp.emp_id}>
-                      {emp.full_name} ({emp.emp_id})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => {
-                    setSelectedStatus(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  <option value="">All Status</option>
-                  <option value="present">Present</option>
-                  <option value="absent">Absent</option>
-                  <option value="half_day">Half Day</option>
-                  <option value="late">Late</option>
-                  <option value="on_leave">On Leave</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Shift</label>
-                <select
-                  value={selectedShift}
-                  onChange={(e) => {
-                    setSelectedShift(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  <option value="">All Shifts</option>
-                  <option value="1">Shift 1</option>
-                  <option value="2">Shift 2</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
-                <select
-                  value={selectedType}
-                  onChange={(e) => {
-                    setSelectedType(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  <option value="">All Types</option>
-                  <option value="auto">Auto</option>
-                  <option value="manual">Manual</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Per Page</label>
-                <select
-                  value={perPage}
-                  onChange={(e) => {
-                    setPerPage(Number(e.target.value))
-                    setCurrentPage(1)
-                  }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  <option value="10">10</option>
-                  <option value="15">15</option>
-                  <option value="25">25</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Clear Filters */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="text-sm text-gray-600">
-                {pagination?.total || attendance.length} records found
-              </div>
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+              <h3 className="text-base font-bold text-slate-900">
+                {isHR ? 'Filter Attendance Records' : 'Filter Team Records'}
+              </h3>
               <button
                 onClick={() => {
                   setSelectedDate(format(new Date(), 'yyyy-MM-dd'))
@@ -738,385 +609,475 @@ setIsExporting(false)
                   setSortOrder('desc')
                   setCurrentPage(1)
                 }}
-                className="px-4 py-2 text-sm text-primary-600 hover:text-primary-700 font-medium"
+                className="text-xs font-semibold text-blue-600 hover:text-blue-700"
               >
                 Clear Filters
               </button>
             </div>
-          </div>
-
-          {/* Export CSV Section */}
-          {isHR && (
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-sm border border-blue-200 p-4 md:p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
-                  <Download className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-base md:text-lg font-semibold text-gray-900">Export Monthly Attendance</h3>
-                  <p className="text-xs md:text-sm text-gray-600">Download attendance data in CSV format</p>
-                </div>
+            
+            {/* Filters */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Single Date</label>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => {
+                    setSelectedDate(e.target.value)
+                    setStartDate('')
+                    setEndDate('')
+                    setCurrentPage(1)
+                  }}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50/60 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Month</label>
-                  <input
-                    type="month"
-                    value={exportMonth}
-                    onChange={(e) => setExportMonth(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Start Date</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value)
+                    setSelectedDate('')
+                    setCurrentPage(1)
+                  }}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50/60 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                />
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Department (Optional)</label>
-                  <select
-                    value={exportDepartment}
-                    onChange={(e) => setExportDepartment(e.target.value)}
-                    disabled={departmentsLoading}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                  >
-                    <option value="">
-                      {departmentsLoading ? 'Loading departments...' : 'All Departments'}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">End Date</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => {
+                    setEndDate(e.target.value)
+                    setSelectedDate('')
+                    setCurrentPage(1)
+                  }}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50/60 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Employee</label>
+                <select
+                  value={selectedEmployee}
+                  onChange={(e) => {
+                    setSelectedEmployee(e.target.value)
+                    setCurrentPage(1)
+                  }}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50/60 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all truncate"
+                >
+                  <option value="">{isHR ? 'All Employees' : 'All Team Members'}</option>
+                  {employees.map((emp) => (
+                    <option key={emp.emp_id} value={emp.emp_id}>
+                      {emp.full_name} ({emp.emp_id})
                     </option>
-                    {departments && departments.length > 0 ? (
-                      departments.map((dept) => (
-                        <option key={dept.id} value={dept.id}>
-                          {dept.name}
-                        </option>
-                      ))
-                    ) : (
-                      !departmentsLoading && <option disabled>No departments found</option>
-                    )}
-                  </select>
-                </div>
+                  ))}
+                </select>
+              </div>
 
-                <div className="flex items-end">
-                  <button
-                    onClick={handleDetailedExport}
-                    disabled={isExporting}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Download className="w-4 h-4" />
-                    {isExporting ? 'Exporting...' : 'Export CSV'}
-                  </button>
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Status</label>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => {
+                    setSelectedStatus(e.target.value)
+                    setCurrentPage(1)
+                  }}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50/60 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                >
+                  <option value="">All Status</option>
+                  <option value="present">Present</option>
+                  <option value="absent">Absent</option>
+                  <option value="half_day">Half Day</option>
+                  <option value="late">Late</option>
+                  <option value="on_leave">On Leave</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Shift</label>
+                <select
+                  value={selectedShift}
+                  onChange={(e) => {
+                    setSelectedShift(e.target.value)
+                    setCurrentPage(1)
+                  }}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50/60 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                >
+                  <option value="">All Shifts</option>
+                  <option value="1">Shift 1</option>
+                  <option value="2">Shift 2</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Type</label>
+                <select
+                  value={selectedType}
+                  onChange={(e) => {
+                    setSelectedType(e.target.value)
+                    setCurrentPage(1)
+                  }}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50/60 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                >
+                  <option value="">All Types</option>
+                  <option value="regular">Regular</option>
+                  <option value="manual">Manual</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Per Page</label>
+                <select
+                  value={perPage}
+                  onChange={(e) => {
+                    setPerPage(Number(e.target.value))
+                    setCurrentPage(1)
+                  }}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50/60 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                >
+                  <option value={10}>10</option>
+                  <option value={15}>15</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                </select>
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Upload Revised Attendance CSV Section */}
+          {/* Export & Upload Tools for HR */}
           {isHR && (
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-sm border border-green-200 p-4 md:p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center">
-                  <Upload className="w-5 h-5 text-white" />
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Export Box */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs flex flex-col justify-between">
                 <div>
-                  <h3 className="text-base md:text-lg font-semibold text-gray-900">Upload Revised Attendance</h3>
-                  <p className="text-xs md:text-sm text-gray-600">Upload approved/revised attendance CSV for a month</p>
-                </div>
-              </div>
+                  <div className="flex items-center gap-3 mb-3.5 pb-3 border-b border-slate-100">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
+                      <Download className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900">Export Monthly Report</h4>
+                      <p className="text-[11px] text-slate-500 font-medium">Download detailed Excel/CSV attendance sheet</p>
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Month</label>
-                  <input
-                    type="month"
-                    value={uploadMonth}
-                    onChange={(e) => setUploadMonth(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">CSV File</label>
-                  <div className="flex gap-2">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                      id="csv-upload"
-                    />
-                    <label
-                      htmlFor="csv-upload"
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-green-500 hover:bg-green-50 transition-colors"
-                    >
-                      <FileText className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">
-                        {uploadFile ? uploadFile.name : 'Choose CSV file'}
-                      </span>
-                    </label>
-                    {uploadFile && (
-                      <button
-                        onClick={() => {
-                          setUploadFile(null)
-                          if (fileInputRef.current) {
-                            fileInputRef.current.value = ''
-                          }
-                        }}
-                        className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors"
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Month</label>
+                      <input
+                        type="month"
+                        value={exportMonth}
+                        onChange={(e) => setExportMonth(e.target.value)}
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50/60 text-slate-800 focus:bg-white focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Department</label>
+                      <select
+                        value={exportDepartment}
+                        onChange={(e) => setExportDepartment(e.target.value)}
+                        disabled={departmentsLoading}
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50/60 text-slate-800 focus:bg-white focus:outline-none"
                       >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
+                        <option value="">All Departments</option>
+                        {departments?.map((dept) => (
+                          <option key={dept.id} value={dept.id}>{dept.name}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
+
+                <button
+                  onClick={handleDetailedExport}
+                  disabled={isExporting}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  {isExporting ? 'Exporting Report...' : 'Export Detailed CSV/Excel'}
+                </button>
               </div>
 
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={replaceExisting}
-                    onChange={(e) => setReplaceExisting(e.target.checked)}
-                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                  />
-                  <span className="text-sm text-gray-700">Replace existing records for this month</span>
-                </label>
+              {/* Upload Box */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-3 mb-3.5 pb-3 border-b border-slate-100">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+                      <Upload className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900">Upload Revised Attendance</h4>
+                      <p className="text-[11px] text-slate-500 font-medium">Upload CSV to bulk update attendance</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Month</label>
+                      <input
+                        type="month"
+                        value={uploadMonth}
+                        onChange={(e) => setUploadMonth(e.target.value)}
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50/60 text-slate-800 focus:bg-white focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">CSV File</label>
+                      <div className="flex gap-1.5">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                          onChange={handleFileSelect}
+                          className="hidden"
+                          id="csv-upload"
+                        />
+                        <label
+                          htmlFor="csv-upload"
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-slate-400 bg-slate-50/50 text-xs text-slate-700 truncate"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                          <span className="truncate">{uploadFile ? uploadFile.name : 'Choose file'}</span>
+                        </label>
+                        {uploadFile && (
+                          <button
+                            onClick={() => {
+                              setUploadFile(null)
+                              if (fileInputRef.current) fileInputRef.current.value = ''
+                            }}
+                            className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-2 cursor-pointer mb-3">
+                    <input
+                      type="checkbox"
+                      checked={replaceExisting}
+                      onChange={(e) => setReplaceExisting(e.target.checked)}
+                      className="w-3.5 h-3.5 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
+                    />
+                    <span className="text-xs font-medium text-slate-600">Replace existing records for this month</span>
+                  </label>
+                </div>
 
                 <button
                   onClick={handleUploadCSV}
                   disabled={isUploading || !uploadFile}
-                  className="flex items-center justify-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
                 >
-                  <Upload className="w-4 h-4" />
-                  {isUploading ? 'Uploading...' : 'Upload CSV'}
+                  <Upload className="w-3.5 h-3.5" />
+                  {isUploading ? 'Uploading...' : 'Upload Revised CSV'}
                 </button>
-              </div>
-
-              <div className="mt-3 p-3 bg-white rounded-lg">
-                <p className="text-xs text-gray-600">
-                  <strong>Note:</strong> The CSV file should match the exported format with columns: Employee ID, Employee Name, Department, Email, Mobile, Designation, Date, Punch In, Punch Out, Work Hours, Status, Shift, Manual Entry, Remark
-                </p>
               </div>
             </div>
           )}
 
+          {/* Main Records Table */}
           {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            <div className="flex items-center justify-center h-64 bg-white rounded-2xl border border-slate-200/80">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-300 border-t-slate-800"></div>
             </div>
           ) : (
-            <>
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-100">
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Attendance Log</h3>
+                  <p className="text-xs text-slate-400 font-medium">Showing {attendance.length} entries</p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-slate-50/70 border-b border-slate-100">
+                      <th 
+                        className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 cursor-pointer hover:bg-slate-100/60"
+                        onClick={() => {
+                          setSortBy('employee_id')
+                          setSortOrder(sortBy === 'employee_id' && sortOrder === 'asc' ? 'desc' : 'asc')
+                        }}
+                      >
+                        <div className="flex items-center gap-1">
+                          Employee
+                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                        </div>
+                      </th>
+                      <th 
+                        className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 cursor-pointer hover:bg-slate-100/60"
+                        onClick={() => {
+                          setSortBy('date')
+                          setSortOrder(sortBy === 'date' && sortOrder === 'asc' ? 'desc' : 'asc')
+                        }}
+                      >
+                        <div className="flex items-center gap-1">
+                          Date
+                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                        </div>
+                      </th>
+                      <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Punch In</th>
+                      <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Punch Out</th>
+                      <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Hours</th>
+                      <th 
+                        className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 cursor-pointer hover:bg-slate-100/60"
+                        onClick={() => {
+                          setSortBy('attendance_status')
+                          setSortOrder(sortBy === 'attendance_status' && sortOrder === 'asc' ? 'desc' : 'asc')
+                        }}
+                      >
+                        <div className="flex items-center gap-1">
+                          Status
+                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                        </div>
+                      </th>
+                      <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Type</th>
+                      <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Selfie</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
+                    {attendance.length === 0 ? (
                       <tr>
-                        <th 
-                          className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
-                          onClick={() => {
-                            setSortBy('employee_id')
-                            setSortOrder(sortBy === 'employee_id' && sortOrder === 'asc' ? 'desc' : 'asc')
-                          }}
-                        >
-                          <div className="flex items-center gap-1">
-                            Employee
-                            <ArrowUpDown className="w-3 h-3" />
-                          </div>
-                        </th>
-                        <th 
-                          className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
-                          onClick={() => {
-                            setSortBy('date')
-                            setSortOrder(sortBy === 'date' && sortOrder === 'asc' ? 'desc' : 'asc')
-                          }}
-                        >
-                          <div className="flex items-center gap-1">
-                            Date
-                            <ArrowUpDown className="w-3 h-3" />
-                          </div>
-                        </th>
-                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Punch In</th>
-                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Punch Out</th>
-                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hours</th>
-                        <th 
-                          className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
-                          onClick={() => {
-                            setSortBy('attendance_status')
-                            setSortOrder(sortBy === 'attendance_status' && sortOrder === 'asc' ? 'desc' : 'asc')
-                          }}
-                        >
-                          <div className="flex items-center gap-1">
-                            Status
-                            <ArrowUpDown className="w-3 h-3" />
-                          </div>
-                        </th>
-                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Selfie</th>
+                        <td colSpan="8" className="px-6 py-10 text-center text-slate-400 font-medium">
+                          No attendance records found for selected filters
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {attendance.length === 0 ? (
-                        <tr>
-                          <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
-                            No attendance records found
+                    ) : (
+                      attendance.map((record) => (
+                        <tr
+                          key={record.id}
+                          className="hover:bg-slate-50/60 transition-colors"
+                        >
+                          <td className="px-6 py-3.5">
+                            <div>
+                              <div className="font-medium text-slate-900">
+                                {record.employee?.full_name || 'N/A'}
+                              </div>
+                              <div className="text-xs text-slate-400">
+                                {record.employee_id}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-3.5 text-slate-700 font-medium">
+                            {format(new Date(record.date), 'dd MMM yyyy')}
+                          </td>
+                          <td className="px-6 py-3.5 text-slate-600">
+                            {record.checkin_time ? format(new Date(record.checkin_time), 'hh:mm a') : '—'}
+                          </td>
+                          <td className="px-6 py-3.5 text-slate-600">
+                            {record.checkout_time ? format(new Date(record.checkout_time), 'hh:mm a') : '—'}
+                          </td>
+                          <td className="px-6 py-3.5 font-medium text-slate-900">
+                            {record.work_hours ? formatWorkHours(record.work_hours) : '—'}
+                          </td>
+                          <td className="px-6 py-3.5">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full ring-1 ring-inset ${getStatusColor(record.attendance_status)}`}>
+                              {record.attendance_status?.replace('_', ' ')}
+                            </span>
+                          </td>
+                          <td className="px-6 py-3.5">
+                            <span className={`inline-flex px-2.5 py-0.5 text-xs font-medium rounded-full ring-1 ring-inset ${
+                              record.is_manual ? 'bg-blue-50 text-blue-700 ring-blue-200' : 'bg-slate-100 text-slate-600 ring-slate-200'
+                            }`}>
+                              {record.is_manual ? 'Manual' : 'Auto'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-3.5">
+                            {record.selfie ? (
+                              <img
+                                src={`${import.meta.env.VITE_BASE_SELFIE_FILE_PATH}/${record.selfie}`}
+                                alt="selfie"
+                                onClick={() => setShowSelfie(record.selfie)}
+                                className="w-8 h-8 rounded-full object-cover cursor-pointer hover:scale-110 transition-transform ring-1 ring-slate-200"
+                              />
+                            ) : (
+                              <span className="text-slate-400 text-xs">No selfie</span>
+                            )}
                           </td>
                         </tr>
-                      ) : (
-                        attendance.map((record) => (
-                          <motion.tr
-                            key={record.id}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="hover:bg-gray-50 transition-colors"
-                          >
-                            <td className="px-4 md:px-6 py-4">
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">
-                                  {record.employee?.full_name || 'N/A'}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  {record.employee_id}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-4 md:px-6 py-4 text-sm text-gray-600">
-                              {format(new Date(record.date), 'MMM dd, yyyy')}
-                            </td>
-                            <td className="px-4 md:px-6 py-4 text-sm text-gray-600">
-                              {record.checkin_time ? format(new Date(record.checkin_time), 'hh:mm a') : '-'}
-                            </td>
-                            <td className="px-4 md:px-6 py-4 text-sm text-gray-600">
-                              {record.checkout_time ? format(new Date(record.checkout_time), 'hh:mm a') : '-'}
-                            </td>
-                            <td className="px-4 md:px-6 py-4 text-sm text-gray-600">
-                              {record.work_hours ? formatWorkHours(record.work_hours) : '-'}
-                            </td>
-                            <td className="px-4 md:px-6 py-4">
-                              <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(record.attendance_status)}`}>
-                                {record.attendance_status?.replace('_', ' ')}
-                              </span>
-                            </td>
-                            <td className="px-4 md:px-6 py-4">
-                              <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                                record.is_manual ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
-                              }`}>
-                                {record.is_manual ? 'Manual' : 'Auto'}
-                              </span>
-                            </td>
-                            <td className="px-4 md:px-6 py-4">
-                              {record.selfie ? (
-                                <img
-                                  src={`${import.meta.env.VITE_BASE_SELFIE_FILE_PATH}/${record.selfie}`}
-                                  alt="selfie"
-                                  onClick={() => setShowSelfie(record.selfie)}
-                                  className="w-10 h-10 rounded-full object-cover cursor-pointer hover:scale-110 transition-transform"
-                                />
-                              ) : (
-                                <span className="text-gray-400 text-xs">No selfie</span>
-                              )}
-                            </td>
-
-                          </motion.tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
 
               {/* Pagination */}
               {pagination && pagination.last_page > 1 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center justify-between">
-                  <div className="text-sm text-gray-600">
+                <div className="px-6 py-3.5 bg-slate-50/60 border-t border-slate-100 flex items-center justify-between">
+                  <div className="text-xs font-medium text-slate-500">
                     Showing {pagination.from} to {pagination.to} of {pagination.total} records
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5">
                     <button
                       onClick={() => setCurrentPage(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
                     >
                       Previous
                     </button>
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
-                        let pageNum
-                        if (pagination.last_page <= 5) {
-                          pageNum = i + 1
-                        } else if (currentPage <= 3) {
-                          pageNum = i + 1
-                        } else if (currentPage >= pagination.last_page - 2) {
-                          pageNum = pagination.last_page - 4 + i
-                        } else {
-                          pageNum = currentPage - 2 + i
-                        }
-                        return (
-                          <button
-                            key={pageNum}
-                            onClick={() => setCurrentPage(pageNum)}
-                            className={`px-3 py-2 rounded-lg text-sm font-medium ${
-                              currentPage === pageNum
-                                ? 'bg-primary-600 text-white'
-                                : 'text-gray-700 hover:bg-gray-50'
-                            }`}
-                          >
-                            {pageNum}
-                          </button>
-                        )
-                      })}
-                    </div>
                     <button
                       onClick={() => setCurrentPage(currentPage + 1)}
                       disabled={currentPage === pagination.last_page}
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
                     >
                       Next
                     </button>
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
         </>
       )}
 
-      {/* Selfie Modal */}
+      {/* Selfie Preview Modal */}
       <AnimatePresence>
         {showSelfie && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4"
             onClick={() => setShowSelfie(null)}
           >
             <motion.div
-              initial={{ scale: 0.8 }}
+              initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
-              exit={{ scale: 0.8 }}
-              className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden"
+              exit={{ scale: 0.9 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-3 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Selfie Preview</h3>
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-900">Selfie Preview</h3>
                 <button
                   onClick={() => setShowSelfie(null)}
-                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-1 hover:bg-slate-100 rounded-lg transition-colors text-slate-400 hover:text-slate-700"
                 >
-                  <X className="w-5 h-5 text-gray-600" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="p-4 flex items-center justify-center">
+              <div className="p-4 flex items-center justify-center bg-slate-950">
                 <img
                   src={`${import.meta.env.VITE_BASE_SELFIE_FILE_PATH}/${showSelfie}`}
                   alt="Selfie"
-                  className="rounded-lg w-full object-contain max-h-[300px]"
+                  className="rounded-xl w-full object-contain max-h-[300px]"
                 />
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-
     </div>
   )
+
 }
 
 export default Attendance

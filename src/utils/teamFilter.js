@@ -10,7 +10,15 @@
  * @returns {Array} - Filtered team members or all employees if admin/HR
  */
 export const getTeamMembers = (allEmployees, currentUser) => {
-  if (!currentUser || !allEmployees) return []
+  const employeesList = Array.isArray(allEmployees)
+    ? allEmployees
+    : Array.isArray(allEmployees?.data)
+    ? allEmployees.data
+    : Array.isArray(allEmployees?.employees)
+    ? allEmployees.employees
+    : []
+
+  if (!currentUser || !employeesList.length) return []
   
   const isAdmin = currentUser.role === 'admin'
   const isHR = currentUser.role === 'hr'
@@ -18,18 +26,18 @@ export const getTeamMembers = (allEmployees, currentUser) => {
   
   // Admin and HR see all employees
   if (isAdmin || isHR) {
-    return allEmployees
+    return employeesList
   }
   
   // Reporting managers see only their team members
   if (isReportingManager) {
-    return allEmployees.filter(emp => 
+    return employeesList.filter(emp => 
       emp.reporting_manager_id === currentUser.emp_id
     )
   }
   
   // Regular employees see only themselves
-  return allEmployees.filter(emp => emp.emp_id === currentUser.emp_id)
+  return employeesList.filter(emp => emp.emp_id === currentUser.emp_id)
 }
 
 /**
@@ -62,6 +70,7 @@ export const canManageTeam = (currentUser) => {
  * @returns {Array} - Filtered records
  */
 export const filterByTeam = (records, teamMemberIds) => {
-  if (!records || !teamMemberIds) return []
-  return records.filter(record => teamMemberIds.includes(record.employee_id))
+  const recordList = Array.isArray(records) ? records : Array.isArray(records?.data) ? records.data : []
+  if (!recordList.length || !Array.isArray(teamMemberIds)) return []
+  return recordList.filter(record => teamMemberIds.includes(record.employee_id))
 }

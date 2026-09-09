@@ -320,17 +320,17 @@ const PunchInOutCard = () => {
             <div className="flex min-w-0 items-center gap-3">
               <Avatar name={user?.full_name} src={user?.photo_path} size="md" />
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-white">{user?.full_name}</p>
-                <p className="truncate text-xs text-primary-100/50">{user?.emp_id}</p>
+                <p className="truncate text-base font-semibold text-white tracking-tight">{user?.full_name}</p>
+                <p className="truncate text-xs font-medium text-slate-300">{user?.emp_id}</p>
               </div>
             </div>
 
             <div className="text-right">
-              <p className="numeral text-2xl font-semibold leading-none text-white">
+              <p className="text-2xl font-bold leading-none text-white tracking-tight">
                 {format(now, 'hh:mm')}
-                <span className="ml-1 text-sm font-medium text-brass-300/80">{format(now, 'a')}</span>
+                <span className="ml-1 text-sm font-semibold text-amber-300">{format(now, 'a')}</span>
               </p>
-              <p className="mt-1.5 text-[10px] uppercase tracking-eyebrow text-primary-100/45">
+              <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-300">
                 {format(now, 'EEE, dd MMM')}
               </p>
             </div>
@@ -346,18 +346,18 @@ const PunchInOutCard = () => {
                 key={slot.label}
                 className={cx(
                   'rounded-xl border p-3.5 transition-colors',
-                  slot.done ? 'border-green-400/25 bg-green-500/10' : 'border-white/[0.08] bg-white/[0.04]'
+                  slot.done ? 'border-emerald-400/40 bg-emerald-500/15' : 'border-slate-700/80 bg-slate-800/60'
                 )}
               >
                 <div className="flex items-center gap-2">
                   {slot.done ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-400" />
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
                   ) : (
-                    <Circle className="h-4 w-4 text-primary-100/35" />
+                    <Circle className="h-4 w-4 text-slate-400" />
                   )}
-                  <span className="text-xs font-medium text-primary-100/70">{slot.label}</span>
+                  <span className="text-xs font-semibold text-slate-200">{slot.label}</span>
                 </div>
-                <p className={cx('numeral mt-1.5 text-lg font-semibold', slot.done ? 'text-white' : 'text-primary-100/35')}>
+                <p className={cx('mt-1.5 text-base sm:text-lg font-bold', slot.done ? 'text-emerald-300' : 'text-slate-300')}>
                   {slot.time ? format(new Date(slot.time), 'hh:mm a') : 'Not marked'}
                 </p>
               </div>
@@ -366,28 +366,28 @@ const PunchInOutCard = () => {
 
           {/* Work hours so far, against a standard nine-hour day */}
           {todayStatus?.attendance?.work_hours ? (
-            <div className="mt-3 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-3">
+            <div className="mt-3 rounded-xl border border-slate-700/80 bg-slate-800/60 px-3.5 py-3">
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-xs text-primary-100/60">
-                  <Hourglass className="h-3.5 w-3.5 text-brass-300/80" />
+                <span className="flex items-center gap-2 text-xs font-medium text-slate-300">
+                  <Hourglass className="h-3.5 w-3.5 text-amber-300" />
                   Hours logged today
                 </span>
-                <span className="numeral text-sm font-semibold text-brass-200">
+                <span className="text-sm font-bold text-amber-200">
                   {formatWorkHours(todayStatus.attendance.work_hours)}
                 </span>
               </div>
-              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.08]">
+              <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-slate-700">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-brass-400 to-brass-200 transition-all duration-700"
+                  className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-200 transition-all duration-700"
                   style={{ width: `${Math.min(100, (Number(todayStatus.attendance.work_hours) / 9) * 100)}%` }}
                 />
               </div>
-              <p className="mt-1.5 text-[10px] uppercase tracking-eyebrow text-primary-100/35">
+              <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wider text-slate-400">
                 of a 9 hour day
               </p>
             </div>
           ) : (
-            <div className="mt-3 rounded-xl border border-dashed border-white/[0.10] px-3.5 py-3 text-center text-xs text-primary-100/40">
+            <div className="mt-3 rounded-xl border border-dashed border-slate-700/80 bg-slate-800/40 px-3.5 py-3 text-center text-xs font-medium text-slate-300">
               {isCheckedIn ? 'Hours will appear once you punch out' : 'Punch in to start your day'}
             </div>
           )}
@@ -690,36 +690,43 @@ const MyAttendance = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow={format(currentDate, 'MMMM yyyy')}
-        title="My Attendance"
-        description={`${user?.full_name || 'You'} · ${user?.emp_id || ''}`}
-      />
+      {/* Top Header */}
+      <div className="border-b border-slate-200/80 pb-4">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1">
+          {format(currentDate, 'MMMM yyyy')}
+        </p>
+        <h1 className="font-sans text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
+          My Attendance
+        </h1>
+        <p className="text-xs sm:text-sm font-normal text-slate-500 mt-1">
+          {user?.full_name || 'Diksha Rajvansh'} • {user?.emp_id || 'TM2511DLEM54715'}
+        </p>
+      </div>
 
       {/* -------- Punch card + headline figures -------- */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
         <PunchInOutCard />
 
         {/* One ledger card whose rows share the punch card's height evenly. */}
-        <Card className="flex flex-col">
+        <Card className="flex flex-col border border-slate-200/80 shadow-xs rounded-2xl bg-white">
           <CardHeader icon={Calendar} title="This Month" subtitle={format(currentDate, 'MMMM yyyy')} />
-          <div className="mt-4 flex flex-1 flex-col divide-y divide-gray-200 border-t border-gray-200">
+          <div className="mt-2 flex flex-1 flex-col divide-y divide-slate-100 border-t border-slate-100">
             {[
-              { icon: Calendar, label: 'Total Days', caption: 'Recorded this month', value: summary.total_days || 0, accent: 'bg-primary-50 text-primary-700 ring-primary-100' },
-              { icon: Clock, label: 'Total Hours', caption: 'Logged across the month', value: formatWorkHoursShort(summary.total_work_hours || 0), accent: 'bg-purple-50 text-purple-700 ring-purple-200' },
-              { icon: TrendingUp, label: 'Avg Hours / Day', caption: 'Across working days', value: formatWorkHoursShort(summary.average_work_hours || 0), accent: 'bg-brass-50 text-brass-700 ring-brass-200' },
+              { icon: Calendar, label: 'Total Days', caption: 'Recorded this month', value: summary.total_days || 0, accent: 'bg-blue-50 text-blue-600 ring-blue-100' },
+              { icon: Clock, label: 'Total Hours', caption: 'Logged across the month', value: formatWorkHoursShort(summary.total_work_hours || 0), accent: 'bg-indigo-50 text-indigo-600 ring-indigo-100' },
+              { icon: TrendingUp, label: 'Avg Hours / Day', caption: 'Across working days', value: formatWorkHoursShort(summary.average_work_hours || 0), accent: 'bg-emerald-50 text-emerald-600 ring-emerald-100' },
             ].map((row) => (
-              <div key={row.label} className="flex flex-1 items-center justify-between gap-4 px-5 py-4 md:px-6">
+              <div key={row.label} className="flex flex-1 items-center justify-between gap-4 px-5 py-3.5 md:px-6">
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className={cx('inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset', row.accent)}>
-                    <row.icon className="h-[18px] w-[18px]" />
+                  <span className={cx('inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset', row.accent)}>
+                    <row.icon className="h-4 w-4" />
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-gray-800">{row.label}</p>
-                    <p className="truncate text-xs text-gray-500">{row.caption}</p>
+                    <p className="truncate text-xs sm:text-sm font-medium text-slate-800">{row.label}</p>
+                    <p className="truncate text-xs text-slate-400">{row.caption}</p>
                   </div>
                 </div>
-                <p className="numeral shrink-0 text-2xl font-semibold text-gray-900">{row.value}</p>
+                <p className="shrink-0 text-xl font-semibold text-slate-900">{row.value}</p>
               </div>
             ))}
           </div>
@@ -727,12 +734,12 @@ const MyAttendance = () => {
       </div>
 
       {/* -------- Month composition -------- */}
-      <Card>
+      <Card className="border border-slate-200/80 shadow-xs rounded-2xl bg-white">
         <CardHeader icon={Sparkles} title="Month at a Glance" subtitle="How this month has been made up" />
         <CardBody>
           {/* Proportion bar */}
           {breakdownTotal > 0 && (
-            <div className="mb-5 flex h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+            <div className="mb-4 flex h-2 w-full overflow-hidden rounded-full bg-slate-100">
               {breakdown
                 .filter((item) => item.value > 0)
                 .map((item) => (
@@ -746,14 +753,14 @@ const MyAttendance = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {breakdown.map((item) => (
-              <div key={item.key} className="bg-white px-4 py-3.5">
-                <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-eyebrow text-gray-500">
+              <div key={item.key} className="bg-slate-50/60 rounded-xl border border-slate-200/60 px-4 py-3">
+                <p className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
                   <span className={cx('h-1.5 w-1.5 rounded-full', styleFor(item.key).dot)} />
                   {styleFor(item.key).label}
                 </p>
-                <p className="numeral mt-1 text-2xl font-semibold text-gray-900">{item.value}</p>
+                <p className="mt-1 text-xl font-semibold text-slate-900">{item.value}</p>
               </div>
             ))}
           </div>
@@ -761,7 +768,7 @@ const MyAttendance = () => {
       </Card>
 
       {/* -------- Daily overview -------- */}
-      <Card>
+      <Card className="border border-slate-200/80 shadow-xs rounded-2xl bg-white">
         <CardHeader
           icon={Calendar}
           title="Daily Attendance Overview"
@@ -769,7 +776,7 @@ const MyAttendance = () => {
           action={
             <div className="hidden flex-wrap items-center gap-3 sm:flex">
               {Object.entries(statusStyles).map(([key, style]) => (
-                <span key={key} className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                <span key={key} className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
                   <span className={cx('h-2 w-2 rounded-full', style.dot)} />
                   {style.label}
                 </span>
@@ -789,23 +796,23 @@ const MyAttendance = () => {
                     <div key={index} className="w-24 shrink-0 text-center lg:w-auto">
                       <div
                         className={cx(
-                          'flex min-h-[92px] flex-col justify-center rounded-xl px-2 py-3 ring-1 ring-inset transition-transform duration-200 hover:-translate-y-0.5',
+                          'flex min-h-[88px] flex-col justify-center rounded-xl px-2 py-2.5 ring-1 ring-inset transition-all duration-200 hover:-translate-y-0.5',
                           style.chip
                         )}
                       >
-                        <p className="text-[10px] font-semibold uppercase tracking-wide opacity-70">{item.day.slice(0, 3)}</p>
-                        <p className="numeral text-xl font-semibold leading-tight">{new Date(item.date).getDate()}</p>
+                        <p className="text-[10px] font-medium uppercase tracking-wide opacity-75">{item.day.slice(0, 3)}</p>
+                        <p className="text-lg font-semibold leading-tight">{new Date(item.date).getDate()}</p>
                         {item.checkin_time && item.checkout_time ? (
-                          <p className="mt-1 text-[10px] leading-tight opacity-80">
+                          <p className="mt-1 text-[10px] leading-tight opacity-80 font-normal">
                             {formatTime(item.checkin_time)}
                             <br />
                             {formatTime(item.checkout_time)}
                           </p>
                         ) : item.checkin_time ? (
-                          <p className="mt-1 text-[10px] opacity-80">{formatTime(item.checkin_time)}</p>
+                          <p className="mt-1 text-[10px] opacity-80 font-normal">{formatTime(item.checkin_time)}</p>
                         ) : null}
                       </div>
-                      <p className="mt-1.5 text-[11px] font-medium text-gray-500">{style.label}</p>
+                      <p className="mt-1.5 text-[11px] font-medium text-slate-500">{style.label}</p>
                     </div>
                   )
                 })}
@@ -816,7 +823,7 @@ const MyAttendance = () => {
       </Card>
 
       {/* -------- Records table -------- */}
-      <Card className="overflow-hidden">
+      <Card className="border border-slate-200/80 shadow-xs rounded-2xl bg-white overflow-hidden">
         <CardHeader
           icon={Clock}
           title="My Attendance Records"
@@ -831,35 +838,35 @@ const MyAttendance = () => {
             className="pb-10"
           />
         ) : (
-          <div className="mt-4 overflow-x-auto border-t border-gray-200">
+          <div className="mt-4 overflow-x-auto border-t border-slate-100">
             <table className="w-full">
               <thead>
-                <tr className="bg-gray-50/80">
+                <tr className="bg-slate-50/70 border-b border-slate-100">
                   {['Date', 'Punch In', 'Punch Out', 'Work Hours', 'Status', 'Type'].map((heading) => (
                     <th
                       key={heading}
-                      className="whitespace-nowrap px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-eyebrow text-gray-500"
+                      className="whitespace-nowrap px-6 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-slate-500"
                     >
                       {heading}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
                 {sortedRecords.map((record) => {
                   const style = styleFor(record.attendance_status)
                   return (
-                    <tr key={record.id} className="transition-colors hover:bg-gray-50/70">
-                      <td className="whitespace-nowrap px-6 py-3.5 text-sm font-medium text-gray-900">
+                    <tr key={record.id} className="transition-colors hover:bg-slate-50/60">
+                      <td className="whitespace-nowrap px-6 py-3.5 font-medium text-slate-900">
                         {formatDate(record.date)}
                       </td>
-                      <td className="whitespace-nowrap px-6 py-3.5 text-sm text-gray-700">{formatTime(record.checkin_time)}</td>
-                      <td className="whitespace-nowrap px-6 py-3.5 text-sm text-gray-700">{formatTime(record.checkout_time)}</td>
-                      <td className="whitespace-nowrap px-6 py-3.5 text-sm font-medium text-gray-900">
+                      <td className="whitespace-nowrap px-6 py-3.5 text-slate-600">{formatTime(record.checkin_time)}</td>
+                      <td className="whitespace-nowrap px-6 py-3.5 text-slate-600">{formatTime(record.checkout_time)}</td>
+                      <td className="whitespace-nowrap px-6 py-3.5 font-medium text-slate-900">
                         {record.work_hours ? formatWorkHours(record.work_hours) : '—'}
                       </td>
                       <td className="whitespace-nowrap px-6 py-3.5">
-                        <span className={cx('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset', style.pill)}>
+                        <span className={cx('inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset', style.pill)}>
                           <span className={cx('h-1.5 w-1.5 rounded-full', style.dot)} />
                           {style.label}
                         </span>
@@ -867,10 +874,10 @@ const MyAttendance = () => {
                       <td className="whitespace-nowrap px-6 py-3.5">
                         <span
                           className={cx(
-                            'inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset',
+                            'inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset',
                             record.is_manual
-                              ? 'bg-primary-50 text-primary-700 ring-primary-200'
-                              : 'bg-gray-100 text-gray-600 ring-gray-200'
+                              ? 'bg-blue-50 text-blue-700 ring-blue-200'
+                              : 'bg-slate-100 text-slate-600 ring-slate-200'
                           )}
                         >
                           {record.is_manual ? 'Manual' : 'Auto'}

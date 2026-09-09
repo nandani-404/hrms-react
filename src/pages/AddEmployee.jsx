@@ -1,17 +1,15 @@
 import { useState, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
   ArrowLeft,
   Calendar,
   Upload,
   Trash2,
   Check,
-  ChevronRight,
   User,
   Briefcase,
   FileText,
-  CheckCircle2,
   X,
   Plus
 } from 'lucide-react'
@@ -27,10 +25,7 @@ const AddEmployee = () => {
   const { data: employeesData = [] } = useEmployees({ status: 'active' })
   const employees = employeesData?.data || employeesData || []
 
-  // Current active step: 1 = Personal Info, 2 = Job Info, 3 = Additional Info, 4 = Review
-  const [currentStep, setCurrentStep] = useState(1)
-
-  // Form State initialized with realistic placeholder defaults matching design mockup
+  // Form State initialized with realistic placeholder defaults
   const [formData, setFormData] = useState({
     // Personal Info
     firstName: 'Rahul',
@@ -159,21 +154,6 @@ const AddEmployee = () => {
     }
   }
 
-  const handleNextStep = () => {
-    if (currentStep < 4) {
-      setCurrentStep((prev) => prev + 1)
-    } else {
-      handleSubmit()
-    }
-  }
-
-  const steps = [
-    { id: 1, title: 'Personal Info', subtitle: 'Basic details', icon: User },
-    { id: 2, title: 'Job Info', subtitle: 'Role & department', icon: Briefcase },
-    { id: 3, title: 'Additional Info', subtitle: 'More details', icon: FileText },
-    { id: 4, title: 'Review', subtitle: 'Confirm details', icon: CheckCircle2 },
-  ]
-
   return (
     <div className="space-y-6 pb-12">
       {/* Top Header & Breadcrumbs */}
@@ -202,365 +182,294 @@ const AddEmployee = () => {
         </button>
       </div>
 
-      {/* Stepper Progress Bar */}
-      <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative">
-          {steps.map((step, idx) => {
-            const isActive = currentStep === step.id
-            const isCompleted = currentStep > step.id
-
-            return (
-              <div
-                key={step.id}
-                onClick={() => setCurrentStep(step.id)}
-                className="flex items-center gap-3 cursor-pointer group"
-              >
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm transition-all shrink-0 ${
-                    isActive
-                      ? 'bg-[#2563eb] text-white shadow-md shadow-blue-200 ring-4 ring-blue-50'
-                      : isCompleted
-                      ? 'bg-blue-100 text-blue-600'
-                      : 'border-2 border-gray-200 text-gray-400 group-hover:border-gray-300'
-                  }`}
-                >
-                  {isCompleted ? <Check className="w-5 h-5" /> : step.id}
-                </div>
-                <div className="min-w-0">
-                  <p
-                    className={`text-sm font-semibold truncate ${
-                      isActive ? 'text-gray-900' : isCompleted ? 'text-blue-600' : 'text-gray-500'
-                    }`}
-                  >
-                    {step.title}
-                  </p>
-                  <p className="text-xs text-gray-400 truncate">{step.subtitle}</p>
-                </div>
-                {idx < steps.length - 1 && (
-                  <div className="hidden md:block flex-1 h-[2px] bg-gray-100 mx-2 self-center" />
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
       {/* Form Content Area: 2 Columns (Left forms, Right upload card) */}
-      <form onSubmit={(e) => e.preventDefault()} className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Main Left Content (3 Columns wide) */}
         <div className="lg:col-span-3 space-y-6">
-          {/* STEP 1 & SHOW ALL SECTIONS IN FORM VIEW MATCHING IMAGE 1 */}
-          {(currentStep === 1 || currentStep === 4) && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-6"
-            >
-              <h2 className="text-base font-bold text-gray-900 pb-2 border-b border-gray-100">
-                Personal Information
-              </h2>
+          {/* SECTION 1: Personal Information */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-6"
+          >
+            <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+              <User className="w-5 h-5 text-blue-600" />
+              <h2 className="text-base font-bold text-gray-900">Personal Information</h2>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* First Name */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    First Name <span className="text-red-500">*</span>
-                  </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* First Name */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  First Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  placeholder="e.g. Rahul"
+                  className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+              </div>
+
+              {/* Last Name */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  Last Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  placeholder="e.g. Sharma"
+                  className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+              </div>
+
+              {/* Email Address */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  Email Address <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="rahul.sharma@techcorp.com"
+                  className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+              </div>
+
+              {/* Contact Number */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  Contact Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="mobile"
+                  value={formData.mobile}
+                  onChange={handleChange}
+                  placeholder="+91 98765 43210"
+                  className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+              </div>
+
+              {/* Date of Birth */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  Date of Birth
+                </label>
+                <div className="relative">
                   <input
-                    type="text"
-                    name="firstName"
-                    value={formData.firstName}
+                    type="date"
+                    name="dob"
+                    value={formData.dob}
                     onChange={handleChange}
-                    placeholder="e.g. Rahul"
                     className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
-                </div>
-
-                {/* Last Name */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Last Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    placeholder="e.g. Sharma"
-                    className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
-                </div>
-
-                {/* Email Address */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Email Address <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="rahul.sharma@techcorp.com"
-                    className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
-                </div>
-
-                {/* Contact Number */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Contact Number <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="mobile"
-                    value={formData.mobile}
-                    onChange={handleChange}
-                    placeholder="+91 98765 43210"
-                    className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
-                </div>
-
-                {/* Date of Birth */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Date of Birth <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      name="dob"
-                      value={formData.dob}
-                      onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* Gender */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Gender <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-
-                {/* Marital Status */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Marital Status
-                  </label>
-                  <select
-                    name="maritalStatus"
-                    value={formData.maritalStatus}
-                    onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  >
-                    <option value="Single">Single</option>
-                    <option value="Married">Married</option>
-                    <option value="Divorced">Divorced</option>
-                    <option value="Widowed">Widowed</option>
-                  </select>
-                </div>
-
-                {/* Blood Group */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Blood Group
-                  </label>
-                  <select
-                    name="bloodGroup"
-                    value={formData.bloodGroup}
-                    onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  >
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                  </select>
-                </div>
-
-                {/* Nationality */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Nationality
-                  </label>
-                  <select
-                    name="nationality"
-                    value={formData.nationality}
-                    onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  >
-                    <option value="Indian">Indian</option>
-                    <option value="American">American</option>
-                    <option value="British">British</option>
-                    <option value="Canadian">Canadian</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-
-                {/* Languages Known */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Languages Known
-                  </label>
-                  <div className="flex flex-wrap items-center gap-2 p-2 bg-gray-50/50 border border-gray-200 rounded-lg min-h-[42px]">
-                    {formData.languages.map((lang) => (
-                      <span
-                        key={lang}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-gray-200 text-xs font-medium text-gray-700 rounded-md shadow-2xs"
-                      >
-                        {lang}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveLanguage(lang)}
-                          className="text-gray-400 hover:text-gray-600"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </span>
-                    ))}
-                    <div className="flex items-center gap-1 flex-1 min-w-[120px]">
-                      <input
-                        type="text"
-                        name="newLanguage"
-                        value={formData.newLanguage}
-                        onChange={handleChange}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault()
-                            handleAddLanguage()
-                          }
-                        }}
-                        placeholder="Add language..."
-                        className="w-full bg-transparent text-xs text-gray-800 focus:outline-none px-1"
-                      />
-                      {formData.newLanguage && (
-                        <button
-                          type="button"
-                          onClick={handleAddLanguage}
-                          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Address (Full Width) */}
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Address
-                  </label>
-                  <textarea
-                    rows={2}
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    placeholder="B-12, Sector 62, Noida, Uttar Pradesh, India"
-                    className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
+                  <Calendar className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
-            </motion.div>
-          )}
 
-          {/* STEP 2: JOB INFORMATION */}
-          {(currentStep === 2 || currentStep === 4 || currentStep === 1) && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-6"
-            >
-              <h2 className="text-base font-bold text-gray-900 pb-2 border-b border-gray-100">
-                Job Information
-              </h2>
+              {/* Gender */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Gender</label>
+                <select
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                >
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Employee ID */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Employee ID <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="employeeId"
-                    value={formData.employeeId}
-                    onChange={handleChange}
-                    placeholder="EMP0121"
-                    className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
-                </div>
+              {/* Marital Status */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Marital Status</label>
+                <select
+                  name="maritalStatus"
+                  value={formData.maritalStatus}
+                  onChange={handleChange}
+                  className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                >
+                  <option value="Single">Single</option>
+                  <option value="Married">Married</option>
+                  <option value="Divorced">Divorced</option>
+                  <option value="Widowed">Widowed</option>
+                </select>
+              </div>
 
-                {/* Department */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Department <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="department"
-                    value={formData.department}
-                    onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              {/* Blood Group */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Blood Group</label>
+                <select
+                  name="bloodGroup"
+                  value={formData.bloodGroup}
+                  onChange={handleChange}
+                  className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                >
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                </select>
+              </div>
+
+              {/* Nationality */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Nationality</label>
+                <input
+                  type="text"
+                  name="nationality"
+                  value={formData.nationality}
+                  onChange={handleChange}
+                  placeholder="e.g. Indian"
+                  className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  Initial Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Password@123"
+                  className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Languages Spoken */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Languages Spoken</label>
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                {formData.languages.map((lang) => (
+                  <span
+                    key={lang}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium border border-blue-100"
                   >
-                    {departments.length > 0 ? (
-                      departments.map((d) => (
-                        <option key={d.id} value={d.name}>
-                          {d.name}
-                        </option>
-                      ))
-                    ) : (
-                      <>
-                        <option value="IT">IT</option>
-                        <option value="HR">HR</option>
-                        <option value="Sales">Sales</option>
-                        <option value="Marketing">Marketing</option>
-                        <option value="Finance">Finance</option>
-                      </>
-                    )}
-                  </select>
-                </div>
+                    {lang}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveLanguage(lang)}
+                      className="text-blue-500 hover:text-blue-800 transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  name="newLanguage"
+                  value={formData.newLanguage}
+                  onChange={handleChange}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddLanguage())}
+                  placeholder="Type a language & press Add"
+                  className="flex-1 px-3.5 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddLanguage}
+                  className="px-3.5 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
 
-                {/* Designation */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Designation <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="designation"
-                    value={formData.designation}
-                    onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  >
-                    <option value="Software Developer">Software Developer</option>
-                    <option value="DevOps Engineer">DevOps Engineer</option>
-                    <option value="UI/UX Designer">UI/UX Designer</option>
-                    <option value="HR Manager">HR Manager</option>
-                    <option value="QA Engineer">QA Engineer</option>
-                    <option value="Product Manager">Product Manager</option>
-                  </select>
-                </div>
+            {/* Current Address */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Current Address</label>
+              <textarea
+                name="address"
+                rows={3}
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="Enter full postal address..."
+                className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              />
+            </div>
+          </motion.div>
 
-                {/* Date of Joining */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Date of Joining <span className="text-red-500">*</span>
-                  </label>
+          {/* SECTION 2: Job Information */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-6"
+          >
+            <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+              <Briefcase className="w-5 h-5 text-blue-600" />
+              <h2 className="text-base font-bold text-gray-900">Job Information</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Employee ID */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Employee ID</label>
+                <input
+                  type="text"
+                  name="employeeId"
+                  value={formData.employeeId}
+                  onChange={handleChange}
+                  placeholder="e.g. EMP0121"
+                  className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+              </div>
+
+              {/* Department */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Department</label>
+                <select
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                >
+                  <option value="IT">IT</option>
+                  <option value="HR">HR</option>
+                  <option value="Finance">Finance</option>
+                  <option value="Engineering">Engineering</option>
+                  <option value="Marketing">Marketing</option>
+                  <option value="Sales">Sales</option>
+                  <option value="Operations">Operations</option>
+                </select>
+              </div>
+
+              {/* Designation */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Designation</label>
+                <input
+                  type="text"
+                  name="designation"
+                  value={formData.designation}
+                  onChange={handleChange}
+                  placeholder="e.g. Software Developer"
+                  className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+              </div>
+
+              {/* Date of Joining */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Date of Joining</label>
+                <div className="relative">
                   <input
                     type="date"
                     name="doj"
@@ -568,117 +477,106 @@ const AddEmployee = () => {
                     onChange={handleChange}
                     className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
-                </div>
-
-                {/* Employment Type */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Employment Type <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="employmentType"
-                    value={formData.employmentType}
-                    onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  >
-                    <option value="Full Time">Full Time</option>
-                    <option value="Part Time">Part Time</option>
-                    <option value="Contract">Contract</option>
-                    <option value="Intern">Intern</option>
-                  </select>
-                </div>
-
-                {/* Reporting Manager */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Reporting Manager <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="reportingManager"
-                    value={formData.reportingManager}
-                    onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  >
-                    <option value="Amit Kumar (DevOps Engineer)">Amit Kumar (DevOps Engineer)</option>
-                    <option value="Priya Sharma (HR Lead)">Priya Sharma (HR Lead)</option>
-                    <option value="Aditya Tiwari (HR Manager)">Aditya Tiwari (HR Manager)</option>
-                    {employees.map((emp) => (
-                      <option key={emp.id} value={`${emp.full_name} (${emp.designation || 'Manager'})`}>
-                        {emp.full_name} ({emp.designation || 'Manager'})
-                      </option>
-                    ))}
-                  </select>
+                  <Calendar className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
-            </motion.div>
-          )}
 
-          {/* STEP 3: ADDITIONAL INFORMATION */}
-          {(currentStep === 3 || currentStep === 4 || currentStep === 1) && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-6"
-            >
-              <h2 className="text-base font-bold text-gray-900 pb-2 border-b border-gray-100">
-                Additional Information
-              </h2>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                {/* PF Number */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">PF Number</label>
-                  <input
-                    type="text"
-                    name="pfNumber"
-                    value={formData.pfNumber}
-                    onChange={handleChange}
-                    placeholder="PF7845125896"
-                    className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
-                </div>
-
-                {/* ESI Number */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">ESI Number</label>
-                  <input
-                    type="text"
-                    name="esiNumber"
-                    value={formData.esiNumber}
-                    onChange={handleChange}
-                    placeholder="ESI45879632"
-                    className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
-                </div>
-
-                {/* UAN Number */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">UAN Number</label>
-                  <input
-                    type="text"
-                    name="uanNumber"
-                    value={formData.uanNumber}
-                    onChange={handleChange}
-                    placeholder="100001234567"
-                    className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
-                </div>
-
-                {/* PAN Number */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">PAN Number</label>
-                  <input
-                    type="text"
-                    name="panNumber"
-                    value={formData.panNumber}
-                    onChange={handleChange}
-                    placeholder="ABCDE1234F"
-                    className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all uppercase"
-                  />
-                </div>
+              {/* Employment Type */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Employment Type</label>
+                <select
+                  name="employmentType"
+                  value={formData.employmentType}
+                  onChange={handleChange}
+                  className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                >
+                  <option value="Full Time">Full Time</option>
+                  <option value="Part Time">Part Time</option>
+                  <option value="Contract">Contract</option>
+                  <option value="Internship">Internship</option>
+                </select>
               </div>
-            </motion.div>
-          )}
+
+              {/* Reporting Manager */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Reporting Manager</label>
+                <input
+                  type="text"
+                  name="reportingManager"
+                  value={formData.reportingManager}
+                  onChange={handleChange}
+                  placeholder="e.g. Amit Kumar"
+                  className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+              </div>
+            </div>
+          </motion.div>
+
+          {/* SECTION 3: Additional Information */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-6"
+          >
+            <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+              <FileText className="w-5 h-5 text-blue-600" />
+              <h2 className="text-base font-bold text-gray-900">Additional Information</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* PF Number */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">PF Number</label>
+                <input
+                  type="text"
+                  name="pfNumber"
+                  value={formData.pfNumber}
+                  onChange={handleChange}
+                  placeholder="PF7845125896"
+                  className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+              </div>
+
+              {/* ESI Number */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">ESI Number</label>
+                <input
+                  type="text"
+                  name="esiNumber"
+                  value={formData.esiNumber}
+                  onChange={handleChange}
+                  placeholder="ESI45879632"
+                  className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+              </div>
+
+              {/* UAN Number */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">UAN Number</label>
+                <input
+                  type="text"
+                  name="uanNumber"
+                  value={formData.uanNumber}
+                  onChange={handleChange}
+                  placeholder="100001234567"
+                  className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+              </div>
+
+              {/* PAN Number */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">PAN Number</label>
+                <input
+                  type="text"
+                  name="panNumber"
+                  value={formData.panNumber}
+                  onChange={handleChange}
+                  placeholder="ABCDE1234F"
+                  className="w-full px-3.5 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all uppercase"
+                />
+              </div>
+            </div>
+          </motion.div>
         </div>
 
         {/* Right Column: Profile Photo Card */}
@@ -746,19 +644,10 @@ const AddEmployee = () => {
           </button>
 
           <button
-            type="button"
-            onClick={handleNextStep}
+            type="submit"
             className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#2563eb] text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm"
           >
-            {currentStep === 4 ? (
-              <>
-                <Check className="w-4 h-4" /> Save & Submit
-              </>
-            ) : (
-              <>
-                Save & Next <ChevronRight className="w-4 h-4" />
-              </>
-            )}
+            <Check className="w-4 h-4" /> Save Employee
           </button>
         </div>
       </form>

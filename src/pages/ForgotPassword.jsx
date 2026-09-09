@@ -20,7 +20,7 @@ const AuthShell = ({ children }) => (
     >
       <div className="mb-7 flex justify-center">
         <span className="inline-flex items-center rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm">
-          <img src="/hrms/logo.png" alt="TM-Manavsetu" className="h-8 w-auto object-contain" />
+          <img src="/logo.png" alt="TM-Manavsetu" className="h-8 w-auto object-contain" />
         </span>
       </div>
 

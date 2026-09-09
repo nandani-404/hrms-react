@@ -39,6 +39,12 @@ import HRPolicies from './pages/HRPolicies'
 import EmployeePolicies from './pages/EmployeePolicies'
 import Profile from './pages/Profile'
 import OfferLetterGenerator from './pages/OfferLetterGenerator'
+import Recruitment from './pages/Recruitment'
+import LeaveManagement from './pages/LeaveManagement'
+import Performance from './pages/Performance'
+import TrainingManagement from './pages/TrainingManagement'
+import Settings from './pages/Settings'
+import Resignation from './pages/Resignation'
 import ProtectedRoute from './components/ProtectedRoute'
 
 // Component to handle role-based redirect
@@ -66,15 +72,17 @@ function App() {
               <Route path="employee-monthly-attendance/:employeeId/:month" element={<EmployeeMonthlyAttendance />} />
               <Route path="my-attendance" element={<MyAttendance />} />
               <Route path="tasks" element={<Tasks />} />
-              <Route path="wfh-requests" element={<WfhRequests />} />
-              <Route path="leave-requests" element={<LeaveRequests />} />
+              <Route path="leave-management" element={<LeaveManagement />} />
               <Route path="helpdesk" element={<Helpdesk />} />
               <Route path="payroll" element={<Payroll />} />
               <Route path="salary-advance" element={<SalaryAdvance />} />
               <Route path="my-salary-advance" element={<EmployeeSalaryAdvance />} />
               <Route path="employee-loan" element={<HREmployeeLoan />} />
               <Route path="my-loan" element={<EmployeeLoan />} />
+              <Route path="recruitment" element={<Recruitment />} />
               <Route path="offer-letter" element={<OfferLetterGenerator />} />
+              <Route path="performance" element={<Performance />} />
+              <Route path="training" element={<TrainingManagement />} />
               <Route path="rewards-recognition" element={<HRRewards />} />
               <Route path="my-rewards" element={<EmployeeRewards />} />
               <Route path="policies" element={<HRPolicies />} />
@@ -85,7 +93,6 @@ function App() {
               <Route path="expense-sub-category" element={<ExpenseSubCategory />} />
               <Route path="expense-approvals" element={<ExpenseApprovals />} />
               <Route path="office-calendar" element={<OfficeCalendar />} />
-              <Route path="short-leave" element={<ShortLeave />} />
               <Route path="assets-management" element={<AssetsManagement />} />
               <Route path="my-assets" element={<EmployeeAssets />} />
               <Route path="assets-category" element={<AssetsCategory />} />
@@ -93,6 +100,8 @@ function App() {
               <Route path="profile" element={<Profile />} />
               <Route path="profile/:id" element={<Profile />} />
               <Route path="my-profile" element={<Profile />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="resignation" element={<Resignation />} />
             </Route>
           </Routes>
         </Router>

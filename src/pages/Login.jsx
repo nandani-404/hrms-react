@@ -59,8 +59,8 @@ const Login = () => {
       {playVideo ? (
         <video
           className="absolute inset-0 h-full w-full object-cover"
-          src="/hrms/login-video.mp4"
-          poster="/hrms/login-poster.jpg"
+          src="/login-video.mp4"
+          poster="/login-poster.jpg"
           style={{ filter: 'brightness(1.24) contrast(1.04) saturate(1.06)' }}
           autoPlay
           muted
@@ -71,7 +71,7 @@ const Login = () => {
         />
       ) : (
         <img
-          src="/hrms/login-poster.jpg"
+          src="/login-poster.jpg"
           alt=""
           aria-hidden="true"
           className="absolute inset-0 h-full w-full object-cover"
@@ -103,7 +103,7 @@ const Login = () => {
         <aside className="hidden flex-col justify-between p-12 lg:flex">
           <div>
             <span className="inline-flex items-center rounded-xl bg-white px-4 py-2.5 shadow-lg">
-              <img src="/hrms/logo.png" alt="TM-Manavsetu" className="h-9 w-auto object-contain" />
+              <img src="/logo.png" alt="TM-Manavsetu" className="h-9 w-auto object-contain" />
             </span>
           </div>
 
@@ -161,7 +161,7 @@ const Login = () => {
             {/* Compact brand lockup for small screens */}
             <div className="mb-8 flex justify-center lg:hidden">
               <span className="inline-flex items-center rounded-xl bg-white px-4 py-2.5 shadow-lg">
-                <img src="/hrms/logo.png" alt="TM-Manavsetu" className="h-8 w-auto object-contain" />
+                <img src="/logo.png" alt="TM-Manavsetu" className="h-8 w-auto object-contain" />
               </span>
             </div>
 

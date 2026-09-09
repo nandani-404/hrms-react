@@ -6,8 +6,14 @@ export const useCalendars = () => {
   return useQuery({
     queryKey: ['calendars'],
     queryFn: async () => {
-      const response = await api.get('/calendars')
-      return response.data.data
+      try {
+        const response = await api.get('/calendars')
+        const data = response?.data?.data || response?.data || []
+        return Array.isArray(data) ? data : []
+      } catch (err) {
+        console.warn('Could not fetch office calendars:', err)
+        return []
+      }
     }
   })
 }

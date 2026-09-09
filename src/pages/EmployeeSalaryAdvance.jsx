@@ -393,7 +393,7 @@ export default function EmployeeSalaryAdvance() {
             <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
             <span className="text-gray-800 font-semibold">My Requests</span>
           </nav>
-          <h1 className="font-serif text-3xl font-bold tracking-tight text-gray-950">Salary Advance</h1>
+          <h1 className="font-sans text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">Salary Advance</h1>
           <p className="mt-1 text-sm text-gray-500">Track your advance requests, repayments, and apply for new advances.</p>
         </div>
         <button
@@ -455,7 +455,7 @@ export default function EmployeeSalaryAdvance() {
           >
             {/* Top row: Label + Icon */}
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 group-hover:text-gray-700 transition-colors">
+              <span className="text-xs font-medium text-slate-500 group-hover:text-slate-700 transition-colors">
                 {card.label}
               </span>
               <span className={cx('flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-transform group-hover:scale-105', card.iconBg)}>
@@ -465,7 +465,7 @@ export default function EmployeeSalaryAdvance() {
 
             {/* Middle: Prominent Value */}
             <div className="my-1">
-              <h2 className="text-xl sm:text-[22px] font-extrabold text-gray-950 tracking-tight leading-tight">
+              <h2 className="text-lg sm:text-xl font-semibold text-slate-900 tracking-tight leading-tight">
                 {card.value}
               </h2>
             </div>

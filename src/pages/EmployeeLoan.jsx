@@ -607,7 +607,7 @@ export default function EmployeeLoan() {
             <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
             <span className="text-gray-800 font-semibold">My Loans</span>
           </nav>
-          <h1 className="font-serif text-3xl font-bold tracking-tight text-gray-950">Employee Loan</h1>
+          <h1 className="font-sans text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">Employee Loan</h1>
           <p className="mt-1 text-sm text-gray-500">View your active company loans, repayment progress, EMI schedules, and apply for new loans.</p>
         </div>
         <button
@@ -668,7 +668,7 @@ export default function EmployeeLoan() {
             className="flex flex-col justify-between rounded-xl border border-gray-200 bg-white p-4 min-h-[115px] shadow-2xs hover:shadow-xs hover:border-gray-300 transition-all group"
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 group-hover:text-gray-700 transition-colors">
+              <span className="text-xs font-medium text-slate-500 group-hover:text-slate-700 transition-colors">
                 {card.label}
               </span>
               <span className={cx('flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-transform group-hover:scale-105', card.iconBg)}>
@@ -676,7 +676,7 @@ export default function EmployeeLoan() {
               </span>
             </div>
             <div className="my-1">
-              <h2 className="text-xl sm:text-[22px] font-extrabold text-gray-950 tracking-tight leading-tight">
+              <h2 className="text-lg sm:text-xl font-semibold text-slate-900 tracking-tight leading-tight">
                 {card.value}
               </h2>
             </div>

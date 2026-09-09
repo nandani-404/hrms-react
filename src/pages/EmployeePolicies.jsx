@@ -147,7 +147,7 @@ export default function EmployeePolicies() {
             <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
             <span className="text-gray-800 font-semibold">My Policies</span>
           </nav>
-          <h1 className="font-serif text-3xl font-bold tracking-tight text-gray-950">Company Policies & Guidelines</h1>
+          <h1 className="font-sans text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">Company Policies & Guidelines</h1>
           <p className="mt-1 text-sm text-gray-500">Read and acknowledge official company policies, codes of conduct, and guidelines.</p>
         </div>
         {pendingCount > 0 && (

@@ -21,6 +21,11 @@ import {
   FileText,
   User,
   FileBadge,
+  UserPlus,
+  TrendingUp,
+  GraduationCap,
+  Settings,
+  UserMinus,
 } from 'lucide-react'
 
 export const HR_ROLES = ['hr', 'super_admin', 'admin']
@@ -50,9 +55,8 @@ export const navGroups = [
   {
     label: 'Time & Leave',
     items: [
-      { to: '/wfh-requests', icon: Home, label: 'WFH Requests', roles: ['all'], hint: 'Work-from-home approvals' },
-      { to: '/leave-requests', icon: Calendar, label: 'Leave Requests', roles: ['all'], hint: 'Leave applications and balances' },
-      { to: '/short-leave', icon: Timer, label: 'Short Leave', roles: HR_ROLES, hint: 'Part-day permissions' },
+      { to: '/leave-management', icon: Calendar, label: 'Leave Management', roles: ['all'], hint: 'Leave applications, balances, WFH & calendar' },
+      { to: '/resignation', icon: UserMinus, label: 'Resignation', roles: ['all'], hint: 'Submit and track resignation & exit workflow' },
     ],
   },
   {
@@ -68,9 +72,12 @@ export const navGroups = [
     ],
   },
   {
-    label: 'Recruitment',
+    label: 'Recruitment & Performance',
     items: [
+      { to: '/recruitment', icon: UserPlus, label: 'Recruitment', roles: HR_ROLES, hint: 'Job openings, candidates & recruitment funnel' },
       { to: '/offer-letter', icon: FileBadge, label: 'Offer Letter', roles: HR_ROLES, hint: 'Generate and manage candidate offer letters' },
+      { to: '/performance', icon: TrendingUp, label: 'Performance', roles: ['all'], hint: 'Review cycles, goals & appraisals' },
+      { to: '/training', icon: GraduationCap, label: 'Training', roles: ['all'], hint: 'Programs, enrollments & certifications' },
     ],
   },
   {
@@ -83,29 +90,13 @@ export const navGroups = [
       { to: '/assets-management', icon: Laptop, label: 'Assets Management', roles: HR_ROLES, hint: 'Company hardware and issuance' },
       { to: '/my-assets', icon: Laptop, label: 'My Assets', roles: ['employee'], hint: 'View company hardware assigned to you' },
       { to: '/office-calendar', icon: CalendarDays, label: 'Office Calendar', roles: HR_ROLES, hint: 'Holidays and office events' },
+      { to: '/settings', icon: Settings, label: 'Settings', roles: HR_ROLES, hint: 'System and company configuration' },
     ],
   },
 ]
 
-/** Configuration screens, tucked behind the Settings disclosure. */
-export const settingsGroups = [
-  {
-    label: 'Assets',
-    icon: Laptop,
-    items: [
-      { to: '/assets-category', icon: FolderTree, label: 'Asset Categories' },
-      { to: '/assets-sub-category', icon: Boxes, label: 'Asset Items' },
-    ],
-  },
-  {
-    label: 'Expenses',
-    icon: Receipt,
-    items: [
-      { to: '/expense-category', icon: Tag, label: 'Expense Categories' },
-      { to: '/expense-sub-category', icon: ListChecks, label: 'Expense Items' },
-    ],
-  },
-]
+/** Configuration screens (Settings menu removed). */
+export const settingsGroups = []
 
 /** Extra destinations that are reachable but not pinned in the rail. */
 export const auxiliaryRoutes = [

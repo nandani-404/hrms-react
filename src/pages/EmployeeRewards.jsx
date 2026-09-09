@@ -99,7 +99,7 @@ export default function EmployeeRewards() {
             <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
             <span className="text-gray-800 font-semibold">My Rewards</span>
           </nav>
-          <h1 className="font-serif text-3xl font-bold tracking-tight text-gray-950">My Rewards & Recognition</h1>
+          <h1 className="font-sans text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">My Rewards & Recognition</h1>
           <p className="mt-1 text-sm text-gray-500">Track your recognitions, redeem points for vouchers, and appreciate your peers.</p>
         </div>
         <button
